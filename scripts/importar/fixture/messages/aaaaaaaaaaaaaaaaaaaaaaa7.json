@@ -1,0 +1,41 @@
+{
+  "chat_id": "aaaaaaaaaaaaaaaaaaaaaaa7",
+  "messages_and_notes": [
+    {
+      "type": "message",
+      "date": {
+        "$date": "2025-01-08T08:01:00Z"
+      },
+      "m": {
+        "_id": {
+          "$oid": "m00000000000000000000201"
+        },
+        "wa_message_id": "true_broadcast_B001",
+        "type": "chat",
+        "is_out": true,
+        "text": "disparo da lista de transmissao",
+        "timestamp": {
+          "$date": "2025-01-08T08:01:00Z"
+        }
+      }
+    },
+    {
+      "type": "message",
+      "date": {
+        "$date": "2025-01-08T08:02:00Z"
+      },
+      "m": {
+        "_id": {
+          "$oid": "m00000000000000000000202"
+        },
+        "wa_message_id": "true_broadcast_B002",
+        "type": "chat",
+        "is_out": true,
+        "text": "segundo disparo",
+        "timestamp": {
+          "$date": "2025-01-08T08:02:00Z"
+        }
+      }
+    }
+  ]
+}

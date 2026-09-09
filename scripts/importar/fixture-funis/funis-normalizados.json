@@ -1,0 +1,20 @@
+{
+  "gerado_em": "2026-01-01T00:00:00.000Z",
+  "canal": "conta-de-teste",
+  "_leia": "FIXTURE SINTETICO — nenhum dado de cliente. Tem de proposito: (a) a armadilha do card, com o nome de etapa 'Fechamento' em DOIS funis, so o funil desambigua; (b) uma etapa com cor valida, uma com cor fora do formato (nao pode subir, o CHECK do banco recusaria) e uma sem cor.",
+  "funis": [
+    {
+      "id_origem": "f1",
+      "nome": "Vendas",
+      "etapas": [
+        { "id_origem": "e1", "nome": "Novo", "ordem": 1, "cor": "#12AB34" },
+        { "id_origem": "e2", "nome": "Fechamento", "ordem": 2, "cor": "azul-claro" }
+      ]
+    },
+    {
+      "id_origem": "f2",
+      "nome": "Pós-venda",
+      "etapas": [{ "id_origem": "e3", "nome": "Fechamento", "ordem": 1 }]
+    }
+  ]
+}

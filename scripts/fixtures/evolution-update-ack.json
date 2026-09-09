@@ -1,0 +1,21 @@
+{
+  "event": "messages.update",
+  "instance": "instancia-de-teste",
+  "data": {
+    "keyId": "3EB0EVO1",
+    "remoteJid": "5511944444444@s.whatsapp.net",
+    "fromMe": true,
+    "participant": null,
+    "status": "DELIVERY_ACK",
+    "key": {
+      "remoteJid": "5511944444444@s.whatsapp.net",
+      "fromMe": true,
+      "id": "3EB0EVO1"
+    },
+    "instanceId": "00000000-0000-0000-0000-000000000000"
+  },
+  "destination": "https://painel.exemplo/api/webhook",
+  "date_time": "2026-08-31T00:30:00.000Z",
+  "server_url": "https://evolution.exemplo",
+  "apikey": "<removido da fixture>"
+}

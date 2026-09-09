@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <title>Atendimento</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #efeae2; font-family: system-ui, sans-serif; }
+    iframe { display: block; width: 100%; height: 100vh; border: 0; background: #fff; }
+    #vazio { display: none; padding: 24px 20px; color: #333; font-size: 14px; line-height: 1.5; }
+    #vazio button { margin-top: 12px; padding: 8px 14px; border: 0; border-radius: 8px; background: #128c7e; color: #fff; font-weight: 600; cursor: pointer; }
+    #vazio code { font-size: 12px; word-break: break-all; }
+  </style>
+</head>
+<body>
+  <!-- O painel INTEIRO roda dentro do iframe (login e 2FA inclusive). allow= igual ao dos outros
+       hospedeiros: sem clipboard-write nao copia texto; sem microphone nao grava audio. Sem sandbox. -->
+  <iframe id="painel" title="Atendimento" allow="clipboard-write; microphone" hidden></iframe>
+  <div id="vazio">
+    <strong>Falta o endereco do painel.</strong><br />
+    Abra as Opcoes da extensao e cole a URL do widget (ex.: <code>https://SEU-PAINEL/widget</code>).
+    <br /><button id="abrir-opcoes" type="button">Abrir Opcoes</button>
+    <p>Origem desta extensao (tem que estar em <code>EMBED_FRAME_ANCESTORS</code> do painel):<br />
+      <code id="origem"></code></p>
+  </div>
+  <script src="sidepanel.js"></script>
+</body>
+</html>

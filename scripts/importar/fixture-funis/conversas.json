@@ -1,0 +1,27 @@
+[
+  {
+    "chat_id": "5500900000001",
+    "meta_chatguru": { "funil_etapas": ["Vendas / Novo"] }
+  },
+  {
+    "chat_id": "5500900000002",
+    "meta_chatguru": { "funil_etapas": ["Vendas / Fechamento", "Pós-venda / Fechamento"] }
+  },
+  {
+    "chat_id": "5500900000003",
+    "meta_chatguru": { "funil_etapas": ["e3"] }
+  },
+  {
+    "chat_id": "5500900000004",
+    "meta_chatguru": { "funil_etapas": ["etapa-que-nao-existe"] }
+  },
+  {
+    "chat_id": "5500900000005",
+    "meta_chatguru": { "funil_etapas": [] }
+  },
+  {
+    "_leia": "valor HOSTIL: conteudo de terceiro com pipe e quebra de linha, que deformaria a tabela do relatorio se entrasse cru",
+    "chat_id": "5500900000006",
+    "meta_chatguru": { "funil_etapas": ["Funil | falso\n| coluna | injetada |"] }
+  }
+]

@@ -1,0 +1,22 @@
+{
+  "event": "messages.upsert",
+  "instance": "instancia-de-teste",
+  "data": {
+    "key": {
+      "remoteJid": "5511944444444@s.whatsapp.net",
+      "fromMe": true,
+      "id": "3EB0EVOECO"
+    },
+    "pushName": "Nome Da Nossa Conta",
+    "message": {
+      "conversation": "resposta enviada pelo painel"
+    },
+    "messageType": "conversation",
+    "messageTimestamp": 1756600500,
+    "instanceId": "00000000-0000-0000-0000-000000000000"
+  },
+  "destination": "https://painel.exemplo/api/webhook",
+  "date_time": "2026-08-31T00:30:00.000Z",
+  "server_url": "https://evolution.exemplo",
+  "apikey": "<removido da fixture>"
+}

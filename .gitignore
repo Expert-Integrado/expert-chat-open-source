@@ -1,0 +1,8 @@
+node_modules/
+.next/
+.vercel/
+.env*
+tsconfig.tsbuildinfo
+
+# bytecode do python dos scripts de homologacao
+__pycache__/

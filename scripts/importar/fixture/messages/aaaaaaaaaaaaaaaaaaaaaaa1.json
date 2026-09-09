@@ -1,0 +1,139 @@
+{
+  "chat_id": "aaaaaaaaaaaaaaaaaaaaaaa1",
+  "messages_and_notes": [
+    {
+      "type": "message",
+      "date": { "$date": "2025-01-02T10:05:00Z" },
+      "m": {
+        "_id": { "$oid": "m00000000000000000000001" },
+        "wa_message_id": "false_5500900000001@c.us_AAA1",
+        "wa_sender_id": "5500900000001@c.us",
+        "type": "chat",
+        "is_out": false,
+        "text": "Bom dia, tenho uma duvida",
+        "sender_name": "Contato Exemplo",
+        "timestamp": { "$date": "2025-01-02T10:05:00Z" }
+      }
+    },
+    {
+      "type": "message",
+      "date": { "$date": "2025-01-02T10:06:00Z" },
+      "m": {
+        "_id": { "$oid": "m00000000000000000000002" },
+        "wa_message_id": "true_5500900000001@c.us_AAA2",
+        "type": "chat",
+        "is_out": true,
+        "status": "sent",
+        "sender_name": "Você",
+        "author": { "$oid": "u1111111111111111111111a" },
+        "text": "Bom dia! Pode falar.",
+        "timestamp": { "$date": "2025-01-02T10:06:00Z" }
+      }
+    },
+    {
+      "type": "message",
+      "date": { "$date": "2025-01-02T10:07:00Z" },
+      "m": {
+        "_id": { "$oid": "m00000000000000000000003" },
+        "wa_message_id": "true_5500900000001@c.us_AAA3",
+        "type": "chat",
+        "is_out": true,
+        "status": "sent",
+        "text": "Mensagem automatica do robo",
+        "timestamp": { "$date": "2025-01-02T10:07:00Z" }
+      }
+    },
+    {
+      "type": "message",
+      "date": { "$date": "2025-01-02T10:08:00Z" },
+      "m": {
+        "_id": { "$oid": "m00000000000000000000004" },
+        "wa_message_id": "false_5500900000001@c.us_AAA4",
+        "wa_sender_id": "5500900000001@c.us",
+        "type": "image",
+        "is_out": false,
+        "timestamp": { "$date": "2025-01-02T10:08:00Z" },
+        "file": {
+          "mime": "image/jpeg",
+          "name": "recibo.jpg",
+          "caption": "segue o recibo",
+          "path_relative": "https://exemplo.invalido/arquivos"
+        }
+      }
+    },
+    {
+      "type": "message",
+      "date": { "$date": "2025-01-02T10:09:00Z" },
+      "m": {
+        "_id": { "$oid": "m00000000000000000000005" },
+        "wa_message_id": "false_5500900000001@c.us_AAA5",
+        "type": "ptt",
+        "is_out": false,
+        "timestamp": { "$date": "2025-01-02T10:09:00Z" },
+        "file": { "mime": "audio/ogg", "name": "audio.ogg", "path_absolute": "/app/static/media" }
+      }
+    },
+    {
+      "type": "message",
+      "date": { "$date": "2025-01-02T10:10:00Z" },
+      "m": {
+        "_id": { "$oid": "m00000000000000000000006" },
+        "wa_message_id": "false_5500900000001@c.us_AAA6",
+        "type": "call_log",
+        "is_out": false,
+        "timestamp": { "$date": "2025-01-02T10:10:00Z" }
+      }
+    },
+    {
+      "type": "message",
+      "date": { "$date": "2025-01-02T10:11:00Z" },
+      "m": {
+        "_id": { "$oid": "m00000000000000000000007" },
+        "wa_message_id": "false_5500900000001@c.us_AAA7",
+        "type": "chat",
+        "is_out": false,
+        "deleted": true,
+        "text": "essa foi apagada",
+        "timestamp": { "$date": "2025-01-02T10:11:00Z" }
+      }
+    },
+    {
+      "type": "message",
+      "date": {},
+      "m": {
+        "_id": { "$oid": "m00000000000000000000008" },
+        "wa_message_id": "false_5500900000001@c.us_AAA8",
+        "type": "chat",
+        "is_out": false,
+        "text": "essa nao tem data nenhuma"
+      }
+    },
+    {
+      "type": "message",
+      "date": { "$date": "2025-01-02T10:05:00Z" },
+      "m": {
+        "_id": { "$oid": "m00000000000000000000001" },
+        "wa_message_id": "false_5500900000001@c.us_AAA1",
+        "wa_sender_id": "5500900000001@c.us",
+        "type": "chat",
+        "is_out": false,
+        "text": "Bom dia, tenho uma duvida",
+        "timestamp": { "$date": "2025-01-02T10:05:00Z" }
+      }
+    },
+    {
+      "type": "note",
+      "date": { "$date": "2025-01-02T10:12:00Z" },
+      "n": {
+        "id": "n0000000000000000000001",
+        "author": "Ana Atendente",
+        "text": "<p>Cliente ja e <b>recorrente</b>&nbsp;— tratar como prioridade.</p>"
+      }
+    },
+    {
+      "type": "note",
+      "date": { "$date": "2025-01-02T10:13:00Z" },
+      "n": { "id": "n0000000000000000000002", "author": "Ana Atendente", "text": "<p>  </p>" }
+    }
+  ]
+}

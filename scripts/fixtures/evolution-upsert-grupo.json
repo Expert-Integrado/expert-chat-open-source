@@ -1,0 +1,29 @@
+{
+  "event": "messages.upsert",
+  "instance": "instancia-de-teste",
+  "data": {
+    "key": {
+      "remoteJid": "120363000000000000@g.us",
+      "fromMe": false,
+      "id": "3EB0EVOGRUPO",
+      "participant": "5511955555555@s.whatsapp.net"
+    },
+    "pushName": "Participante do Grupo",
+    "message": {
+      "extendedTextMessage": {
+        "text": "olha isso ai",
+        "contextInfo": {
+          "stanzaId": "3EB0ANTERIOR",
+          "participant": "5511944444444@s.whatsapp.net"
+        }
+      }
+    },
+    "messageType": "extendedTextMessage",
+    "messageTimestamp": 1756600300,
+    "instanceId": "00000000-0000-0000-0000-000000000000"
+  },
+  "destination": "https://painel.exemplo/api/webhook",
+  "date_time": "2026-08-31T00:30:00.000Z",
+  "server_url": "https://evolution.exemplo",
+  "apikey": "<removido da fixture>"
+}

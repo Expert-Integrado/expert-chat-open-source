@@ -1,0 +1,18 @@
+-- APOSENTADO em 31/08/2026 — NAO USE ESTE ARQUIVO.
+--
+-- Esta era a PROPOSTA de DDL de funis, escrita quando o painel ainda nao tinha
+-- funil nenhum. O modelo oficial existe desde entao e mora em:
+--
+--     supabase/migrations/0009_funis.sql
+--
+-- Ele cobre o que estava aqui (funis, funil_etapas e o vinculo por canal+chat_id)
+-- e mais o que o produto pediu: ordem, cor por etapa, arquivamento, as colunas de
+-- rastreabilidade origem_sistema/origem_conta_id/origem_id e a trilha
+-- `conversa_funil_eventos` (quem moveu a conversa de etapa, quando e por qual fluxo).
+--
+-- Manter dois arquivos de DDL para as MESMAS tabelas so garante que um dia os dois
+-- divirjam — por isso este virou ponteiro em vez de copia.
+--
+-- Como sempre: rodar migration e gesto humano no SQL editor da instalacao; o
+-- codigo nunca cria tabela. Depois de aplicar a 0009, o segundo passo da
+-- importacao (`node scripts/importar/funis.mjs`) carrega os funis normalizados.

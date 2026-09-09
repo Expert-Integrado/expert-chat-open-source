@@ -1,0 +1,55 @@
+{
+  "attachments": [
+    {
+      "_id": {
+        "$oid": "bbbbbbbbbbbbbbbbbbbbbb01"
+      },
+      "created": {
+        "$date": "2026-01-10T12:00:00.000Z"
+      },
+      "description": "texto que acompanhava o envio",
+      "mime": "application/pdf",
+      "name": "guia_123.pdf",
+      "original_name": "guia.pdf",
+      "path_relative": "https://armazem.invalido/conta-fixture/attached",
+      "size": 400000,
+      "tags": [
+        "comercial"
+      ]
+    },
+    {
+      "_id": {
+        "$oid": "bbbbbbbbbbbbbbbbbbbbbb02"
+      },
+      "created": {
+        "$date": "2026-02-11T12:00:00.000Z"
+      },
+      "description": "",
+      "mime": "image/png",
+      "name": "banner_456.png",
+      "original_name": "banner.png",
+      "path_relative": "https://armazem.invalido/conta-fixture/attached",
+      "size": 120000,
+      "tags": []
+    },
+    {
+      "_id": {
+        "$oid": "bbbbbbbbbbbbbbbbbbbbbb03"
+      },
+      "created": {
+        "$date": "2026-03-12T12:00:00.000Z"
+      },
+      "description": "",
+      "mime": "video/mp4",
+      "name": "aula_789.mp4",
+      "original_name": "aula.mp4",
+      "path_relative": "https://armazem.invalido/conta-fixture/attached",
+      "size": 9000000,
+      "tags": []
+    }
+  ],
+  "tags": [],
+  "current_page": 1,
+  "total_pages": 3,
+  "total_results": 7
+}

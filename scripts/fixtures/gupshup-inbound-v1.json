@@ -1,0 +1,20 @@
+{
+  "app": "AppDeTeste",
+  "timestamp": 1756600050000,
+  "version": 2,
+  "type": "message",
+  "payload": {
+    "id": "wamid.GUPTESTE1",
+    "source": "5511922222222",
+    "type": "text",
+    "payload": {
+      "text": "quero saber do curso"
+    },
+    "sender": {
+      "phone": "5511922222222",
+      "name": "Lead Teste",
+      "country_code": "55",
+      "dial_code": "11922222222"
+    }
+  }
+}

@@ -1,0 +1,83 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Intencoes bot 2 (FIXTURE SINTETICA)</title></head>
+<body>
+<!--
+  FIXTURE SINTETICA — segundo chatbot da MESMA conta. Existe pra provar a parte
+  mais delicada da consolidacao: na origem a intencao pertence a um chatbot; aqui
+  o catalogo e da instalacao inteira (um nome, uma intencao).
+-->
+<table><tbody>
+
+  <!-- b1: MESMO nome de a1 (caixa diferente) com pontuacao minima DIFERENTE (20
+       contra 2). Termos se unem; o minimo que fica e o mais ALTO. -->
+  <tr>
+    <td>
+      <a href="/chatbot/bbbb2222bbbb2222bbbb2222/intent/b1b1b1b1b1b1b1b1b1b1b1b1/edit">atendente</a>
+      <hr>
+      <input type="number" class="form-control intent_min_points" data-intent-id="b1b1b1b1b1b1b1b1b1b1b1b1" data-bot-id="bbbb2222bbbb2222bbbb2222" placeholder="Padrão: 2" value="20">
+    </td>
+    <td>
+      <div class="p-1 mb-1 border rounded keyword_item">
+        <i class="fa fa-sw fa-trash text-danger pointer keyword_delete" data-intent-id="b1b1b1b1b1b1b1b1b1b1b1b1" data-keyword="especialista" data-bot-id="bbbb2222bbbb2222bbbb2222"></i>
+        especialista
+      </div>
+      <div class="p-1 mb-1 border rounded keyword_item">
+        <i class="fa fa-sw fa-trash text-danger pointer keyword_delete" data-intent-id="b1b1b1b1b1b1b1b1b1b1b1b1" data-keyword="ATENDENTE" data-bot-id="bbbb2222bbbb2222bbbb2222"></i>
+        ATENDENTE
+      </div>
+    </td>
+    <td>
+      <div class="p-1 mb-1 border rounded example_item" data-intent-id="b1b1b1b1b1b1b1b1b1b1b1b1">
+        <i class="fa fa-sw fa-trash text-danger pointer example_delete" data-intent-id="b1b1b1b1b1b1b1b1b1b1b1b1" data-example="quero falar com um especialista" data-bot-id="bbbb2222bbbb2222bbbb2222"></i>
+        quero falar com um especialista
+      </div>
+    </td>
+  </tr>
+
+  <!-- b2: mesmo nome de a2 depois de normalizar (sem acento, sem entidade) e com
+       a MESMA pontuacao efetiva (a2 estava em branco = padrao 2). Une sem virar
+       pendencia: nao ha conflito nenhum a resolver. -->
+  <tr>
+    <td>
+      <a href="/chatbot/bbbb2222bbbb2222bbbb2222/intent/b2b2b2b2b2b2b2b2b2b2b2b2/edit">Preco &amp; Valor</a>
+      <hr>
+      <input type="number" class="form-control intent_min_points" data-intent-id="b2b2b2b2b2b2b2b2b2b2b2b2" data-bot-id="bbbb2222bbbb2222bbbb2222" value="2">
+    </td>
+    <td>
+      <div class="p-1 mb-1 border rounded keyword_item">
+        <i class="fa fa-sw fa-trash text-danger pointer keyword_delete" data-intent-id="b2b2b2b2b2b2b2b2b2b2b2b2" data-keyword="valor" data-bot-id="bbbb2222bbbb2222bbbb2222"></i>
+        valor
+      </div>
+    </td>
+    <td>
+      <div class="p-1 mb-1 border rounded example_item" data-intent-id="b2b2b2b2b2b2b2b2b2b2b2b2">
+        <i class="fa fa-sw fa-trash text-danger pointer example_delete" data-intent-id="b2b2b2b2b2b2b2b2b2b2b2b2" data-example="Quanto custa?" data-bot-id="bbbb2222bbbb2222bbbb2222"></i>
+        Quanto custa?
+      </div>
+    </td>
+  </tr>
+
+  <!-- b3: minimo 100 (so frase exata dispara). ATRIBUTOS EM ORDEM INVERTIDA e com
+       ASPAS SIMPLES — casar por posicao devolveria zero termo em silencio. Termo
+       gigante: tem que ser cortado no limite. -->
+  <tr>
+    <td>
+      <a href="/chatbot/bbbb2222bbbb2222bbbb2222/intent/b3b3b3b3b3b3b3b3b3b3b3b3/edit">Frase exata</a>
+      <hr>
+      <input type="number" placeholder="Padrão: 2" value="100" data-bot-id="bbbb2222bbbb2222bbbb2222" data-intent-id="b3b3b3b3b3b3b3b3b3b3b3b3" class="form-control intent_min_points">
+    </td>
+    <td>
+      <div class="p-1 mb-1 border rounded keyword_item">
+        <i data-bot-id="bbbb2222bbbb2222bbbb2222" data-keyword='xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' data-intent-id="b3b3b3b3b3b3b3b3b3b3b3b3" class="fa fa-sw fa-trash text-danger pointer keyword_delete"></i>
+        (termo gigante)
+      </div>
+    </td>
+    <td>
+      <div class="p-1 mb-1 border rounded example_item" data-intent-id="b3b3b3b3b3b3b3b3b3b3b3b3">
+        <i data-example="   sim,   consegui    participar   " data-intent-id="b3b3b3b3b3b3b3b3b3b3b3b3" class="fa fa-sw fa-trash text-danger pointer example_delete" data-bot-id="bbbb2222bbbb2222bbbb2222"></i>
+        sim, consegui participar
+      </div>
+    </td>
+  </tr>
+
+</tbody></table>
+</body></html>

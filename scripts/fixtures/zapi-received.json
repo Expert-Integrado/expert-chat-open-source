@@ -1,0 +1,26 @@
+{
+  "isStatusReply": false,
+  "chatLid": null,
+  "connectedPhone": "5500000000000",
+  "waitingMessage": false,
+  "isEdit": false,
+  "isGroup": false,
+  "isNewsletter": false,
+  "instanceId": "INSTANCIA_DE_TESTE",
+  "messageId": "3EB0ZAPTESTE1",
+  "phone": "5511911111111",
+  "fromMe": false,
+  "momment": 1756600000000,
+  "status": "RECEIVED",
+  "chatName": "Contato Teste",
+  "senderPhoto": null,
+  "senderName": "Contato Teste",
+  "photo": null,
+  "broadcast": false,
+  "participantPhone": null,
+  "forwarded": false,
+  "type": "ReceivedCallback",
+  "text": {
+    "message": "bom dia, queria informacao"
+  }
+}

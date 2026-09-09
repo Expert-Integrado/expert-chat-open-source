@@ -1,0 +1,214 @@
+{
+  "chat_id": "aaaaaaaaaaaaaaaaaaaaaaa6",
+  "messages_and_notes": [
+    {
+      "type": "message",
+      "date": {
+        "$date": "2025-01-07T08:01:00Z"
+      },
+      "m": {
+        "_id": {
+          "$oid": "m00000000000000000000101"
+        },
+        "wa_message_id": "true_5500900000006@c.us_F001",
+        "type": "chat",
+        "is_out": true,
+        "status": "sent",
+        "ack": 3,
+        "text": "Segue o combinado",
+        "author": {
+          "$oid": "u1111111111111111111111a"
+        },
+        "timestamp": {
+          "$date": "2025-01-07T08:01:00Z"
+        },
+        "quotes_wa_message_id": "false_5500900000006@c.us_F000",
+        "quotes": "mensagem citada, cortada pela origem ...",
+        "reactions": [
+          {
+            "reaction": "👍",
+            "sender": "5500900000006",
+            "date": {
+              "$date": "2025-01-07T08:02:00Z"
+            },
+            "name": "Voce"
+          },
+          {
+            "reaction": "🙏",
+            "sender": "5500900000006",
+            "date": {
+              "$date": "2025-01-07T08:03:00Z"
+            },
+            "name": "Voce"
+          }
+        ],
+        "edits": [
+          {
+            "date": {
+              "$date": "2025-01-07T08:05:00Z"
+            },
+            "old_text": null
+          }
+        ],
+        "is_forwarded": true,
+        "is_template": true,
+        "from_device": true,
+        "processor": 7
+      }
+    },
+    {
+      "type": "message",
+      "date": {
+        "$date": "2025-01-07T08:06:00Z"
+      },
+      "m": {
+        "_id": {
+          "$oid": "m00000000000000000000102"
+        },
+        "wa_message_id": "false_5500900000006@c.us_F002",
+        "wa_sender_id": "5500900000006@c.us",
+        "type": "revoked",
+        "is_out": false,
+        "timestamp": {
+          "$date": "2025-01-07T08:06:00Z"
+        }
+      }
+    },
+    {
+      "type": "message",
+      "date": {
+        "$date": "2025-01-07T08:07:00Z"
+      },
+      "m": {
+        "_id": {
+          "$oid": "m00000000000000000000103"
+        },
+        "wa_message_id": "true_5500900000006@c.us_F003",
+        "type": "interactive_list",
+        "is_out": true,
+        "status": "sent",
+        "ack": 2,
+        "text": "Escolha uma opcao:",
+        "timestamp": {
+          "$date": "2025-01-07T08:07:00Z"
+        }
+      }
+    },
+    {
+      "type": "message",
+      "date": {
+        "$date": "2025-01-07T08:08:00Z"
+      },
+      "m": {
+        "_id": {
+          "$oid": "m00000000000000000000104"
+        },
+        "wa_message_id": "true_5500900000006@c.us_F004",
+        "type": "chat",
+        "is_out": true,
+        "status": "error",
+        "ack": 3,
+        "text": "essa nao saiu",
+        "error_details": "4005 - Message Sending failed",
+        "timestamp": {
+          "$date": "2025-01-07T08:08:00Z"
+        }
+      }
+    },
+    {
+      "type": "message",
+      "date": {
+        "$date": "2025-01-07T08:09:00Z"
+      },
+      "m": {
+        "_id": {
+          "$oid": "m00000000000000000000105"
+        },
+        "wa_message_id": "false_5500900000006@c.us_F005",
+        "wa_sender_id": "5500900000006@c.us",
+        "type": "document",
+        "is_out": false,
+        "timestamp": {
+          "$date": "2025-01-07T08:09:00Z"
+        },
+        "file": {
+          "mime": "application/pdf",
+          "name": "contrato.pdf",
+          "size": 12345,
+          "path_absolute": "https://exemplo.invalido/absoluto/contrato.pdf"
+        }
+      }
+    },
+    {
+      "type": "message",
+      "date": {
+        "$date": "2025-01-07T08:10:00Z"
+      },
+      "m": {
+        "_id": {
+          "$oid": "m00000000000000000000106"
+        },
+        "wa_message_id": "false_5500900000006@c.us_F006",
+        "wa_sender_id": "5500900000006@c.us",
+        "type": "chat",
+        "is_out": false,
+        "text": "Obrigado pela atenÃ§Ã£o",
+        "timestamp": {
+          "$date": "2025-01-07T08:10:00Z"
+        }
+      }
+    },
+    {
+      "type": "message",
+      "date": {
+        "$date": "2025-01-07T08:09:30Z"
+      },
+      "m": {
+        "_id": {
+          "$oid": "m00000000000000000000107"
+        },
+        "wa_message_id": "true_5500900000006@c.us_F007",
+        "type": "chat",
+        "is_out": true,
+        "status": "processed",
+        "text": "processada pelo chatbot da origem",
+        "timestamp": {
+          "$date": "2025-01-07T08:09:30Z"
+        }
+      }
+    },
+    {
+      "type": "note",
+      "date": {
+        "$date": "2025-01-07T08:11:00Z"
+      },
+      "n": {
+        "id": "n0000000000000000000101",
+        "author": "  ana   atendente ",
+        "text": "<p>casou por nome</p>"
+      }
+    },
+    {
+      "type": "note",
+      "date": {
+        "$date": "2025-01-07T08:12:00Z"
+      },
+      "n": {
+        "id": "n0000000000000000000102",
+        "author": "Fulano Que Saiu",
+        "text": "<p>autor sem cadastro</p>"
+      }
+    },
+    {
+      "type": "note",
+      "date": {
+        "$date": "2025-01-07T08:13:00Z"
+      },
+      "n": {
+        "id": "n0000000000000000000103",
+        "author": "Chatbot",
+        "text": "<p>anotacao automatica do robo</p>"
+      }
+    }
+  ]
+}

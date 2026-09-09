@@ -1,0 +1,130 @@
+{
+  "attachments": [
+    {
+      "_id": {
+        "$oid": "aaaaaaaaaaaaaaaaaaaaaa01"
+      },
+      "created": {
+        "$date": "2026-01-10T12:00:00.000Z"
+      },
+      "description": "manda junto com a proposta",
+      "mime": "application/pdf",
+      "name": "guia_123.pdf",
+      "original_name": "Guia de Implantação.pdf",
+      "path_relative": "https://armazem.invalido/conta-fixture/attached",
+      "size": 400,
+      "tags": [
+        "comercial",
+        "Comercial"
+      ]
+    },
+    {
+      "_id": {
+        "$oid": "aaaaaaaaaaaaaaaaaaaaaa02"
+      },
+      "created": {
+        "$date": "2026-01-11T12:00:00.000Z"
+      },
+      "description": "",
+      "mime": "application/pdf",
+      "name": "guia_999.PDF",
+      "original_name": "guia de implantacao.PDF",
+      "path_relative": "https://armazem.invalido/conta-fixture/attached",
+      "size": 420,
+      "tags": []
+    },
+    {
+      "_id": {
+        "$oid": "aaaaaaaaaaaaaaaaaaaaaa03"
+      },
+      "created": {
+        "$date": "2026-01-12T12:00:00.000Z"
+      },
+      "description": "",
+      "mime": "application/octet-stream",
+      "name": "banner_456.svg",
+      "original_name": "banner.svg",
+      "path_relative": "https://armazem.invalido/conta-fixture/attached",
+      "size": 900,
+      "tags": []
+    },
+    {
+      "created": {
+        "$date": "2026-01-13T12:00:00.000Z"
+      },
+      "description": "",
+      "mime": "image/png",
+      "name": "sem_id_000.png",
+      "original_name": "sem id.png",
+      "path_relative": "https://armazem.invalido/conta-fixture/attached",
+      "size": 100,
+      "tags": []
+    },
+    {
+      "_id": {
+        "$oid": "aaaaaaaaaaaaaaaaaaaaaa05"
+      },
+      "created": {
+        "$date": "2026-01-14T12:00:00.000Z"
+      },
+      "description": "",
+      "mime": "video/mp4",
+      "name": "aula_789.mp4",
+      "original_name": "aula.mp4",
+      "path_relative": "https://armazem.invalido/conta-fixture/attached",
+      "size": 9000,
+      "tags": []
+    },
+    {
+      "_id": {
+        "$oid": "aaaaaaaaaaaaaaaaaaaaaa06"
+      },
+      "created": {
+        "$date": "2026-01-15T12:00:00.000Z"
+      },
+      "description": "",
+      "mime": "application/pdf",
+      "name": "contrato_555.pdf",
+      "original_name": "contrato.pdf",
+      "path_relative": "https://armazem.invalido/conta-fixture/attached",
+      "size": 30000000,
+      "tags": []
+    },
+    {
+      "_id": {
+        "$oid": "aaaaaaaaaaaaaaaaaaaaaa07"
+      },
+      "created": {
+        "$date": "2026-01-16T12:00:00.000Z"
+      },
+      "description": "tabela vigente",
+      "mime": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "name": "tabela_777.xlsx",
+      "original_name": "Tabela de Preços 2026.xlsx",
+      "path_relative": "https://armazem.invalido/conta-fixture/attached",
+      "size": 380,
+      "tags": [
+        "precos"
+      ]
+    },
+    {
+      "_id": {
+        "$oid": "aaaaaaaaaaaaaaaaaaaaaa08"
+      },
+      "created": {
+        "$date": "2026-01-18T12:00:00.000Z"
+      },
+      "description": "",
+      "mime": "application/pdf",
+      "name": "disfarcado_888.pdf",
+      "original_name": "Politica de Privacidade.pdf",
+      "path_relative": "https://armazem.invalido/conta-fixture/attached",
+      "size": 120,
+      "tags": []
+    }
+  ],
+  "tags": [],
+  "current_page": 1,
+  "total_pages": 2,
+  "total_results": 12
+}

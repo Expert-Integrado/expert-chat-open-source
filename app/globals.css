@@ -1,0 +1,78 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 210 20% 98%;
+  --foreground: 222 47% 11%;
+  --muted: 210 16% 93%;
+  --muted-foreground: 215 16% 47%;
+  --primary: 142 70% 35%;
+  --primary-foreground: 0 0% 100%;
+  --accent: 210 16% 90%;
+  --accent-foreground: 222 47% 11%;
+  --border: 214 20% 88%;
+}
+
+/* Tema escuro (paleta do WhatsApp dark). A classe .dark vem do perfil do usuario. */
+.dark {
+  --background: 200 19% 10%;
+  --foreground: 197 14% 93%;
+  --muted: 199 18% 16%;
+  --muted-foreground: 202 11% 61%;
+  --primary: 142 60% 42%;
+  --primary-foreground: 0 0% 100%;
+  --accent: 198 17% 21%;
+  --accent-foreground: 197 14% 93%;
+  --border: 199 16% 19%;
+}
+
+/* Superficies com cor fixa no markup ganham o par escuro aqui (sem tocar o JSX). */
+.dark .bg-white { background-color: #202c33; }
+.dark .bg-\[\#d9fdd3\] { background-color: #005c4b; }
+.dark .bg-\[\#efeae2\] { background-color: #0b141a; }
+.dark .bg-black\/5 { background-color: rgba(255, 255, 255, 0.06); }
+.dark .bg-black\/10 { background-color: rgba(255, 255, 255, 0.08); }
+.dark .hover\:bg-black\/10:hover { background-color: rgba(255, 255, 255, 0.1); }
+.dark .bg-white\/80 { background-color: rgba(32, 44, 51, 0.9); }
+.dark .bg-amber-50 { background-color: #33301f; }
+.dark .bg-amber-50\/60 { background-color: rgba(51, 48, 31, 0.7); }
+.dark .text-amber-800 { color: #eace6f; }
+.dark .hover\:bg-amber-100:hover { background-color: #45402a; }
+.dark .bg-red-100 { background-color: #4a2028; color: #ff8f9d; }
+.dark .text-red-700 { color: #ff8f9d; }
+.dark .bg-sky-100 { background-color: #16323f; color: #7cc4e8; }
+.dark .text-sky-700, .dark .text-sky-800 { color: #7cc4e8; }
+.dark .bg-green-100 { background-color: #173727; color: #6fd394; }
+.dark .text-green-700 { color: #6fd394; }
+.dark .bg-amber-100 { background-color: #3d3319; color: #eace6f; }
+.dark .text-amber-700 { color: #eace6f; }
+.dark .hover\:bg-red-50:hover { background-color: #3a1d23; }
+
+* {
+  border-color: hsl(var(--border));
+  /* barra de rolagem fininha na cor dos icones (Firefox/Chrome novos) */
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--muted-foreground) / 0.45) transparent;
+}
+
+/* WebKit (Chrome/Edge/Safari) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.45);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.7);
+}
+
+body {
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+}

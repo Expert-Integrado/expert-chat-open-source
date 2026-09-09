@@ -1,0 +1,15 @@
+{
+  "app": "AppDeTeste",
+  "timestamp": 1756600120000,
+  "version": 2,
+  "type": "message-event",
+  "payload": {
+    "id": "wamid.GUPTESTE1",
+    "gsId": "gs-id-teste-1",
+    "type": "delivered",
+    "destination": "5511922222222",
+    "payload": {
+      "ts": 1756600120
+    }
+  }
+}

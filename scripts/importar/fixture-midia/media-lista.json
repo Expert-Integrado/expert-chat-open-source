@@ -1,0 +1,30 @@
+[
+  {
+    "tipo": "image",
+    "media_url": "https://armazem.invalido/conta-fixture/received/A_pequena.jpg",
+    "media_mime": "image/jpeg",
+    "criada_em": "2025-01-02 10:00:00+00",
+    "chat_id": "5500900000001"
+  },
+  {
+    "tipo": "audio",
+    "media_url": "https://armazem.invalido/conta-fixture/received/B_grande.ogg",
+    "media_mime": "audio/ogg",
+    "criada_em": "2025-01-02 10:00:00+00",
+    "chat_id": "5500900000001"
+  },
+  {
+    "tipo": "document",
+    "media_url": "https://armazem.invalido/conta-fixture/attached/C_sem_copia.pdf",
+    "media_mime": "application/pdf",
+    "criada_em": "2025-01-02 10:00:00+00",
+    "chat_id": "5500900000001"
+  },
+  {
+    "tipo": "video",
+    "media_url": "https://armazem.invalido/conta-fixture/received/D_ja_subido.mp4",
+    "media_mime": "video/mp4",
+    "criada_em": "2025-01-02 10:00:00+00",
+    "chat_id": "5500900000001"
+  }
+]

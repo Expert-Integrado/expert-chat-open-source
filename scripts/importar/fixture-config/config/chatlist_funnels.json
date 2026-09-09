@@ -1,0 +1,12 @@
+[
+  {
+    "id": "f01",
+    "name": "Comercial",
+    "steps": [
+      {
+        "id": "e01",
+        "name": "Novo lead"
+      }
+    ]
+  }
+]

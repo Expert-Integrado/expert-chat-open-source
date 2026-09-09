@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <title>Expert Chat - Opcoes</title>
+  <style>
+    body { margin: 0; padding: 24px; max-width: 560px; font-family: system-ui, sans-serif; color: #222; font-size: 14px; line-height: 1.5; }
+    h1 { font-size: 18px; margin: 0 0 12px; }
+    label { display: block; font-weight: 600; margin-top: 16px; }
+    input { width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 14px; margin-top: 4px; }
+    button { margin-top: 12px; padding: 8px 14px; border: 0; border-radius: 8px; background: #128c7e; color: #fff; font-weight: 600; cursor: pointer; }
+    code { background: #f2f2f2; padding: 1px 4px; border-radius: 4px; word-break: break-all; }
+    .ok { color: #157347; } .erro { color: #b02a37; }
+    ol { padding-left: 20px; }
+  </style>
+</head>
+<body>
+  <h1>Expert Chat no painel lateral</h1>
+  <p>A extensao so abre o painel de atendimento (o mesmo <code>/widget</code> que roda em outros sistemas). Nada do painel fica na extensao.</p>
+
+  <label for="url">Endereco do painel</label>
+  <input id="url" type="url" placeholder="https://SEU-PAINEL/widget" />
+  <p style="margin:4px 0 0;color:#555;font-size:12px">Pode colar so o dominio: a extensao completa com <code>/widget</code>. Um token de recorte (<code>?ctx=...</code>) gerado na tela "Instalar widget" tambem pode vir aqui.</p>
+  <button id="salvar" type="button">Salvar</button>
+  <span id="msg"></span>
+
+  <h2 style="font-size:15px;margin-top:24px">Liberar no painel (1 vez, quem administra o painel)</h2>
+  <ol>
+    <li>Acrescente esta origem a variavel <code>EMBED_FRAME_ANCESTORS</code> do painel: <code id="origem"></code></li>
+    <li>Publique o painel de novo (a variavel e lida no build).</li>
+    <li>Confira na tela <strong>Configuracoes &gt; Instalar widget</strong> do painel: cole a origem acima no passo 3 e ela tem que aparecer como liberada.</li>
+  </ol>
+  <script src="options.js"></script>
+</body>
+</html>

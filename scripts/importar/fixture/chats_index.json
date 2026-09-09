@@ -1,0 +1,163 @@
+{
+  "total_ativos": 3,
+  "total_arquivados": 4,
+  "chats": [
+    {
+      "id": "aaaaaaaaaaaaaaaaaaaaaaa1",
+      "wa_chat_id": "5500900000001",
+      "name": "Contato Exemplo",
+      "kind": "chat",
+      "status": "ABERTO",
+      "archived": false,
+      "picture": "https://exemplo.invalido/foto1.jpg",
+      "created": "2025-01-02 10:00:00.000000",
+      "users_delegated_ids": [
+        "u1111111111111111111111a"
+      ],
+      "groups_delegated_ids": [],
+      "funnel_steps_ids": [
+        "e1111111111111111111111a"
+      ],
+      "tags": [
+        {
+          "text": "Cliente",
+          "color": "#000000",
+          "bg": "#60d600"
+        }
+      ]
+    },
+    {
+      "id": "aaaaaaaaaaaaaaaaaaaaaaa2",
+      "wa_chat_id": "5500900000002-1600000000@g.us",
+      "name": "Grupo Exemplo",
+      "kind": "group",
+      "status": "RESOLVIDO",
+      "archived": true,
+      "created": "2025-01-03 11:00:00.000000",
+      "users_delegated_ids": [],
+      "groups_delegated_ids": [],
+      "funnel_steps_ids": [
+        "etapa-que-nao-existe"
+      ],
+      "tags": [
+        {
+          "text": "Etiqueta Solta",
+          "color": "#ffffff",
+          "bg": "#123456"
+        }
+      ]
+    },
+    {
+      "id": "aaaaaaaaaaaaaaaaaaaaaaa3",
+      "wa_chat_id": "5500900000003",
+      "name": "Sem Arquivo De Mensagens",
+      "kind": "chat",
+      "status": "EM ATENDIMENTO",
+      "archived": false,
+      "created": "2025-01-04 12:00:00.000000",
+      "users_delegated_ids": [],
+      "groups_delegated_ids": [],
+      "funnel_steps_ids": [],
+      "tags": []
+    },
+    {
+      "id": "aaaaaaaaaaaaaaaaaaaaaaa4",
+      "wa_chat_id": "5500900000001",
+      "name": "Contato Exemplo (entrada arquivada)",
+      "kind": "chat",
+      "status": "RESOLVIDO",
+      "archived": true,
+      "created": "2025-01-05 09:00:00.000000",
+      "users_delegated_ids": [
+        {
+          "$oid": "u1111111111111111111111b"
+        }
+      ],
+      "groups_delegated_ids": [],
+      "funnel_steps_ids": [],
+      "tags": []
+    },
+    {
+      "id": "aaaaaaaaaaaaaaaaaaaaaaa5",
+      "wa_chat_id": "5500900000005-1700000000@g.us",
+      "name": "Grupo Só Pelo Sufixo",
+      "kind": "chat",
+      "status": "ABERTO",
+      "archived": false,
+      "created": "2025-01-06 09:00:00.000000",
+      "users_delegated_ids": [],
+      "groups_delegated_ids": [],
+      "funnel_steps_ids": [],
+      "tags": []
+    },
+    {
+      "id": "aaaaaaaaaaaaaaaaaaaaaaa6",
+      "wa_chat_id": "5500900000006",
+      "name": "Contato Com Tudo",
+      "kind": "chat",
+      "status": null,
+      "archived": true,
+      "created": "2025-01-07 08:00:00.000000",
+      "users_delegated_ids": [
+        "u1111111111111111111111a",
+        {
+          "$oid": "u1111111111111111111111b"
+        }
+      ],
+      "groups_delegated_ids": [
+        "g1111111111111111111111a",
+        "g0000000000000000000fant"
+      ],
+      "funnel_steps_ids": [
+        "e1111111111111111111111a",
+        "e1111111111111111111111b"
+      ],
+      "tags": [
+        {
+          "text": "cliente",
+          "color": "#000000",
+          "bg": "#60d600"
+        }
+      ],
+      "picture": "https://exemplo.invalido/foto-do-backup.jpg"
+    },
+    {
+      "id": "aaaaaaaaaaaaaaaaaaaaaaa7",
+      "wa_chat_id": "1685887687",
+      "name": "BROADCAST",
+      "kind": "broadcast",
+      "status": "FECHADO",
+      "archived": true,
+      "created": "2025-01-08 08:00:00.000000",
+      "users_delegated_ids": [],
+      "groups_delegated_ids": [],
+      "funnel_steps_ids": [],
+      "tags": []
+    },
+    {
+      "id": "aaaaaaaaaaaaaaaaaaaaaaa8",
+      "wa_chat_id": "5500900000008",
+      "name": "Conta com rotulo no lugar do id",
+      "kind": "chat",
+      "status": "ABERTO",
+      "archived": false,
+      "created": {
+        "$date": "2025-01-07T08:00:00Z"
+      },
+      "tags": [
+        {
+          "text": "Cliente"
+        }
+      ],
+      "users_delegated_ids": [
+        "Ana Atendente"
+      ],
+      "groups_delegated_ids": [
+        "Suporte"
+      ],
+      "funnel_steps_ids": [
+        "Proposta"
+      ]
+    }
+  ]
+}

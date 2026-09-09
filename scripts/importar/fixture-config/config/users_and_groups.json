@@ -1,0 +1,14 @@
+{
+  "users": [
+    {
+      "id": "u01",
+      "name": "Ana Atendente"
+    }
+  ],
+  "groups": [
+    {
+      "id": "g01",
+      "name": "Suporte"
+    }
+  ]
+}

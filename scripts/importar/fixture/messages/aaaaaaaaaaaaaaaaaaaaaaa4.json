@@ -1,0 +1,18 @@
+{
+  "chat_id": "aaaaaaaaaaaaaaaaaaaaaaa4",
+  "messages_and_notes": [
+    {
+      "type": "message",
+      "date": { "$date": "2025-01-05T09:10:00Z" },
+      "m": {
+        "_id": { "$oid": "m00000000000000000000201" },
+        "wa_message_id": "false_5500900000001@c.us_CCC1",
+        "wa_sender_id": "5500900000001@c.us",
+        "type": "chat",
+        "is_out": false,
+        "text": "mensagem na entrada arquivada do mesmo telefone",
+        "timestamp": { "$date": "2025-01-05T09:10:00Z" }
+      }
+    }
+  ]
+}

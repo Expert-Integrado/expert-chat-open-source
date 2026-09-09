@@ -1,0 +1,27 @@
+{
+  "chat_id": "aaaaaaaaaaaaaaaaaaaaaaa5",
+  "messages_and_notes": [
+    {
+      "type": "message",
+      "date": { "$date": "2025-01-06T09:10:00Z" },
+      "m": {
+        "type": "image",
+        "is_out": false,
+        "wa_sender_id": "5500900000007@c.us",
+        "timestamp": { "$date": "2025-01-06T09:10:00Z" },
+        "file": { "mime": "image/jpeg", "name": "sem-link.jpg", "path_absolute": "/app/static/media" }
+      }
+    },
+    {
+      "type": "message",
+      "date": { "$date": "2025-01-06T09:10:00Z" },
+      "m": {
+        "type": "ptt",
+        "is_out": false,
+        "wa_sender_id": "5500900000008@c.us",
+        "timestamp": { "$date": "2025-01-06T09:10:00Z" },
+        "file": { "mime": "audio/ogg", "name": "sem-link.ogg", "path_absolute": "/app/static/media" }
+      }
+    }
+  ]
+}

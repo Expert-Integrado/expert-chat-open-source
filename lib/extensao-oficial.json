@@ -1,0 +1,7 @@
+{
+  "_comentario": "Extensao oficial do Chrome (Chrome Web Store). O id e atribuido pela loja e nunca muda; toda instalacao do painel aceita esta origem por padrao (next.config.mjs e a rota /api/embed/instalacao leem daqui). Publicada em 03/09/2026 pela Expert Integrado, nao listada. Fonte da extensao: extensao-chrome/.",
+  "id": "fnidebgjjamnnppdlcckodkiehlhagkp",
+  "origem": "chrome-extension://fnidebgjjamnnppdlcckodkiehlhagkp",
+  "link_instalacao": "https://chromewebstore.google.com/detail/fnidebgjjamnnppdlcckodkiehlhagkp",
+  "id_desenvolvimento": "ogopiikeijddpkmkeippljgcihapcnph"
+}

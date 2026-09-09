@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "Expert Chat - painel dos seus apps de comunicação",
+  "version": "1.0.0",
+  "description": "Abre o seu painel do Expert Chat (open source, auto-hospedado) no painel lateral do Chrome, ao lado de qualquer site.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAowYxk6NpblQ6jloC6Himon0vXJZkZ1ZLrnI/jWtFw0jUGe7+Ovj0UQb2+LQROCFe7tQa15C7wTw8/zNaIchN7hqbN8bzx/FESZ5P0qhKlrWZ2mHMdyALzX1Xc2uSQ1/MsjfQkPJMAGvCnDxgUpUshe2/oVcSt8eiAiAjn/cM0lOFObDtSS1arLSIwYvKvPd5Ht81+KGmjwf5Ym1nSk/7CocnbeCDWWFAhuCA83q6MYIgLAX5Dgz2kuXm5LxyGEL3Zh3dTcEdn6MqhgjyLyXOxG9rvy4RvABBnOpHt6oD0aVBvOpTVA3FDYvCPu/YzOzYLSdEjM0xSjzw8h9/y1iEYwIDAQAB",
+  "permissions": [
+    "sidePanel",
+    "storage"
+  ],
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "action": {
+    "default_title": "Abrir o atendimento",
+    "default_icon": {
+      "16": "icones/16.png",
+      "32": "icones/32.png",
+      "48": "icones/48.png",
+      "128": "icones/128.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "options_page": "options.html",
+  "icons": {
+    "16": "icones/16.png",
+    "32": "icones/32.png",
+    "48": "icones/48.png",
+    "128": "icones/128.png"
+  }
+}

@@ -1,0 +1,118 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Intencoes (FIXTURE SINTETICA)</title></head>
+<body>
+<!--
+  FIXTURE SINTETICA — nenhum dado de cliente. Reproduz a estrutura da tela de
+  intencoes da ferramenta de origem (as ancoras que o parser usa: o link
+  /chatbot/<bot>/intent/<id>/edit, data-keyword, data-example e o input
+  intent_min_points), com uma armadilha por intencao.
+-->
+<table><tbody>
+
+  <!-- a1: nome que TAMBEM existe no outro bot, com minimo 2 (o outro tem 20).
+       Palavra repetida variando a caixa. -->
+  <tr>
+    <td>
+      <a href="/chatbot/aaaa1111aaaa1111aaaa1111/intent/a1a1a1a1a1a1a1a1a1a1a1a1/edit" style="font-size:125%;">Atendente</a>
+      <hr>
+      <div class="input-group input-group-sm mb-3 mt-2">
+        <div class="input-group-prepend"><span class="d-block border rounded p-1 min_points">Pontuação Mínima:</span></div>
+        <input type="number" class="form-control intent_min_points" data-intent-id="a1a1a1a1a1a1a1a1a1a1a1a1" data-bot-id="aaaa1111aaaa1111aaaa1111" placeholder="Padrão: 2" value="2">
+      </div>
+    </td>
+    <td>
+      <div id="keywords_a1a1a1a1a1a1a1a1a1a1a1a1">
+        <div class="p-1 mb-1 border rounded keyword_item">
+          <i class="fa fa-sw fa-trash text-danger pointer keyword_delete" data-intent-id="a1a1a1a1a1a1a1a1a1a1a1a1" data-keyword="atendente" data-bot-id="aaaa1111aaaa1111aaaa1111"></i>
+          atendente
+        </div>
+        <div class="p-1 mb-1 border rounded keyword_item">
+          <i class="fa fa-sw fa-trash text-danger pointer keyword_delete" data-intent-id="a1a1a1a1a1a1a1a1a1a1a1a1" data-keyword="Humano" data-bot-id="aaaa1111aaaa1111aaaa1111"></i>
+          Humano
+        </div>
+        <div class="p-1 mb-1 border rounded keyword_item">
+          <i class="fa fa-sw fa-trash text-danger pointer keyword_delete" data-intent-id="a1a1a1a1a1a1a1a1a1a1a1a1" data-keyword="humano " data-bot-id="aaaa1111aaaa1111aaaa1111"></i>
+          humano
+        </div>
+      </div>
+    </td>
+    <td>
+      <div id="examples_a1a1a1a1a1a1a1a1a1a1a1a1">
+        <div class="p-1 mb-1 border rounded example_item" data-intent-id="a1a1a1a1a1a1a1a1a1a1a1a1">
+          <i class="fa fa-sw fa-trash text-danger pointer example_delete" data-intent-id="a1a1a1a1a1a1a1a1a1a1a1a1" data-example="Falar com humano" data-bot-id="aaaa1111aaaa1111aaaa1111"></i>
+          Falar com humano
+        </div>
+      </div>
+    </td>
+  </tr>
+
+  <!-- a2: nome e termos com ENTIDADE html; campo de minimo VAZIO (cai no padrao 2);
+       frase com aspas escapadas. -->
+  <tr>
+    <td>
+      <a href="/chatbot/aaaa1111aaaa1111aaaa1111/intent/a2a2a2a2a2a2a2a2a2a2a2a2/edit">Pre&#231;o &amp; valor</a>
+      <hr>
+      <input type="number" class="form-control intent_min_points" data-intent-id="a2a2a2a2a2a2a2a2a2a2a2a2" data-bot-id="aaaa1111aaaa1111aaaa1111" placeholder="Padrão: 2" value="">
+    </td>
+    <td>
+      <div class="p-1 mb-1 border rounded keyword_item">
+        <i class="fa fa-sw fa-trash text-danger pointer keyword_delete" data-intent-id="a2a2a2a2a2a2a2a2a2a2a2a2" data-keyword="pre&#231;o" data-bot-id="aaaa1111aaaa1111aaaa1111"></i>
+        preço
+      </div>
+    </td>
+    <td>
+      <div class="p-1 mb-1 border rounded example_item" data-intent-id="a2a2a2a2a2a2a2a2a2a2a2a2">
+        <i class="fa fa-sw fa-trash text-danger pointer example_delete" data-intent-id="a2a2a2a2a2a2a2a2a2a2a2a2" data-example="Qual o &quot;valor&quot; disso?" data-bot-id="aaaa1111aaaa1111aaaa1111"></i>
+        Qual o "valor" disso?
+      </div>
+    </td>
+  </tr>
+
+  <!-- a3: SEM palavra-chave e SEM frase. Nao reconheceria nada: nao entra. -->
+  <tr>
+    <td>
+      <a href="/chatbot/aaaa1111aaaa1111aaaa1111/intent/a3a3a3a3a3a3a3a3a3a3a3a3/edit">Intencao vazia</a>
+      <hr>
+      <input type="number" class="form-control intent_min_points" data-intent-id="a3a3a3a3a3a3a3a3a3a3a3a3" data-bot-id="aaaa1111aaaa1111aaaa1111" value="10">
+    </td>
+    <td><div id="keywords_a3a3a3a3a3a3a3a3a3a3a3a3"></div></td>
+    <td><div id="examples_a3a3a3a3a3a3a3a3a3a3a3a3"></div></td>
+  </tr>
+
+  <!-- a4: link SEM nome (a origem deixa a celula vazia quando o nome foi apagado). -->
+  <tr>
+    <td>
+      <a href="/chatbot/aaaa1111aaaa1111aaaa1111/intent/a4a4a4a4a4a4a4a4a4a4a4a4/edit"></a>
+      <hr>
+      <input type="number" class="form-control intent_min_points" data-intent-id="a4a4a4a4a4a4a4a4a4a4a4a4" data-bot-id="aaaa1111aaaa1111aaaa1111" value="2">
+    </td>
+    <td>
+      <div class="p-1 mb-1 border rounded keyword_item">
+        <i class="fa fa-sw fa-trash text-danger pointer keyword_delete" data-intent-id="a4a4a4a4a4a4a4a4a4a4a4a4" data-keyword="orfa" data-bot-id="aaaa1111aaaa1111aaaa1111"></i>
+        orfa
+      </div>
+    </td>
+    <td></td>
+  </tr>
+
+  <!-- a5: pontuacao minima ILEGIVEL (texto onde deveria haver numero). So frases. -->
+  <tr>
+    <td>
+      <a href="/chatbot/aaaa1111aaaa1111aaaa1111/intent/a5a5a5a5a5a5a5a5a5a5a5a5/edit">So frase</a>
+      <hr>
+      <input type="number" class="form-control intent_min_points" data-intent-id="a5a5a5a5a5a5a5a5a5a5a5a5" data-bot-id="aaaa1111aaaa1111aaaa1111" value="dois">
+    </td>
+    <td><div id="keywords_a5a5a5a5a5a5a5a5a5a5a5a5"></div></td>
+    <td>
+      <div class="p-1 mb-1 border rounded example_item" data-intent-id="a5a5a5a5a5a5a5a5a5a5a5a5">
+        <i class="fa fa-sw fa-trash text-danger pointer example_delete" data-intent-id="a5a5a5a5a5a5a5a5a5a5a5a5" data-example="quero cancelar minha assinatura" data-bot-id="aaaa1111aaaa1111aaaa1111"></i>
+        quero cancelar minha assinatura
+      </div>
+      <div class="p-1 mb-1 border rounded example_item" data-intent-id="a5a5a5a5a5a5a5a5a5a5a5a5">
+        <i class="fa fa-sw fa-trash text-danger pointer example_delete" data-intent-id="a5a5a5a5a5a5a5a5a5a5a5a5" data-example="quero cancelar" data-bot-id="aaaa1111aaaa1111aaaa1111"></i>
+        quero cancelar
+      </div>
+    </td>
+  </tr>
+
+</tbody></table>
+</body></html>

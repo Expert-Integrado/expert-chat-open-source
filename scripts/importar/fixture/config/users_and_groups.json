@@ -1,0 +1,7 @@
+{
+  "groups": [{ "id": "g1111111111111111111111a", "name": "Suporte", "users": [] }],
+  "users": [
+    { "id": "u1111111111111111111111a", "name": "Ana Atendente", "email": "ana@exemplo.invalido" },
+    { "id": "u1111111111111111111111b", "name": "Bruno Atendente", "email": "bruno@exemplo.invalido" }
+  ]
+}

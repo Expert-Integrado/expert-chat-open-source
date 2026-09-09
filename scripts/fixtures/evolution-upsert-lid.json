@@ -1,0 +1,28 @@
+{
+  "event": "messages.upsert",
+  "instance": "instancia-de-teste",
+  "data": {
+    "key": {
+      "remoteJid": "199999999999999@lid",
+      "remoteJidAlt": "5511966666666@s.whatsapp.net",
+      "addressingMode": "lid",
+      "fromMe": false,
+      "id": "3EB0EVOLID"
+    },
+    "pushName": "Contato Por Lid",
+    "message": {
+      "imageMessage": {
+        "mimetype": "image/jpeg",
+        "caption": "segue o print",
+        "url": "https://mmg.whatsapp.net/exemplo"
+      }
+    },
+    "messageType": "imageMessage",
+    "messageTimestamp": 1756600400,
+    "instanceId": "00000000-0000-0000-0000-000000000000"
+  },
+  "destination": "https://painel.exemplo/api/webhook",
+  "date_time": "2026-08-31T00:30:00.000Z",
+  "server_url": "https://evolution.exemplo",
+  "apikey": "<removido da fixture>"
+}

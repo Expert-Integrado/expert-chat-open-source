@@ -1,0 +1,91 @@
+{
+  "rota": "/campaigns",
+  "capturado_em": "2026-01-15T10:00:00.000Z",
+  "_aviso": "FIXTURE SINTETICA. Nenhuma campanha real de cliente entra no repo. A ordem das colunas aqui e DIFERENTE da capturada em producao de proposito: e o que prova que o importador casa pelo CABECALHO e nao por posicao fixa.",
+  "tabelas": [
+    {
+      "cabecalho": [
+        "STATUS",
+        "CAMPANHA",
+        "RECIPIENTES",
+        "PROGRESSO",
+        "DATA CRIAÇÃO",
+        "DIÁLOGO",
+        "DATA INÍCIO"
+      ],
+      "linhas": [
+        {
+          "celulas": [
+            "FINALIZADA",
+            "Campanha de teste A",
+            "150",
+            "100%",
+            "02/01/2026 09:00",
+            "Fluxo de boas-vindas",
+            "02/01/2026 09:30"
+          ],
+          "links": [
+            "/campaigns/aaaa000000000000000000a1/view",
+            "/chatbot/bbbb000000000000000000b1/dialog/cccc000000000000000000c1/edit",
+            "/campaigns/aaaa000000000000000000a1/archive"
+          ]
+        },
+        {
+          "celulas": [
+            "PAUSADA",
+            "Campanha de teste B",
+            "2.400",
+            "37%",
+            "05/01/2026 14:20",
+            "Fluxo de retomada",
+            "05/01/2026 15:00"
+          ],
+          "links": [
+            "/campaigns/aaaa000000000000000000a2/view",
+            "/chatbot/bbbb000000000000000000b1/dialog/cccc000000000000000000c2/edit"
+          ]
+        },
+        {
+          "celulas": [
+            "CANCELADA",
+            "Campanha de teste C",
+            "10",
+            "0%",
+            "06/01/2026 08:00",
+            "",
+            ""
+          ],
+          "links": ["/campaigns/aaaa000000000000000000a3/view"]
+        },
+        {
+          "celulas": [
+            "FINALIZADA",
+            "Campanha de teste A",
+            "150",
+            "100%",
+            "02/01/2026 09:00",
+            "Fluxo de boas-vindas",
+            "02/01/2026 09:30"
+          ],
+          "links": ["/campaigns/aaaa000000000000000000a1/view"]
+        },
+        {
+          "celulas": ["FINALIZADA", "", "5", "100%", "07/01/2026 10:00", "Fluxo orfao", "07/01/2026 10:00"],
+          "links": ["/campaigns/aaaa000000000000000000a4/view"]
+        },
+        {
+          "celulas": [
+            "FINALIZADA",
+            "Campanha sem identificador",
+            "7",
+            "100%",
+            "08/01/2026 11:00",
+            "Fluxo qualquer",
+            "08/01/2026 11:00"
+          ],
+          "links": ["/relatorio/alguma-coisa"]
+        }
+      ]
+    }
+  ]
+}
