@@ -405,6 +405,33 @@ on conflict (chave) do update set valor = excluded.valor, updated_at = now();
 Se você ligou automação ou disparo, volte ao passo 6: cada um tem uma rotina própria, e sem ela
 o fluxo nunca executa e a campanha nunca sai da fila.
 
+## Atualizar uma instalação que já existe
+
+Código novo não muda nada do que você já configurou: o `.env.local` é seu e fica fora do Git, e
+migration aplicada não roda de novo. Na pasta do painel:
+
+```bash
+git pull
+npm install                                   # só se o package.json mudou
+node scripts/instalar/agente.mjs --valendo    # completa o que faltar; nada é sobrescrito
+```
+
+O conferidor é idempotente: ele aplica só a migration que falta, cria o que ainda não existe
+(bucket, tabelas de um canal novo) e mantém toda chave que já está no `.env.local`. Rodar duas
+vezes não faz mal. Sem o WhatsApp Agent, o equivalente é
+`node scripts/instalar/index.mjs`, que **confere e diz** o que falta sem alterar nada.
+
+Depois:
+
+- **Local:** reinicie o `npm run dev`.
+- **Vercel pelo CLI:** `vercel --prod` de novo. Envs novas vão com
+  `node scripts/instalar/agente.mjs --valendo --vercel` antes do deploy — variável só entra em
+  build novo.
+- **Vercel ligada a um fork no GitHub:** `git push` para o seu fork e ela redeploya sozinha.
+
+Se a atualização trouxer migration nova, o conferidor avisa antes de aplicar e confere no fim;
+ele **para com erro** se sobrar alguma pela metade, em vez de dizer que terminou.
+
 ## Esqueci a senha
 
 Dois caminhos, e o segundo existe porque o primeiro depende de e-mail:

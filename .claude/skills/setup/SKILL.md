@@ -83,6 +83,13 @@ a linha 5 (`CANAIS_EXTRA`). Dois números no agent? `--conta <alias>` escolhe qu
 Confira no fim: `node scripts/instalar/index.mjs --base https://SEU-PAINEL` faz o smoke test.
 Para testar local, nada disso é necessário.
 
+## Já instalado, quer só atualizar
+
+Se a pasta já tem `.env.local` e o painel já rodou, o pedido é atualização, não instalação:
+`git pull`, depois `node scripts/instalar/agente.mjs --valendo` (idempotente: completa o que
+falta, não sobrescreve chave nenhuma), e reiniciar o `npm run dev`. Na Vercel, `--valendo
+--vercel` e `vercel --prod`. O README tem a seção "Atualizar uma instalação que já existe".
+
 ## O que ainda não faz (diga, se perguntarem)
 
 Mídia enviada pelo painel, reação, etiqueta, nota interna e concluir conversa no canal do

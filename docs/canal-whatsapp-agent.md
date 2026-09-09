@@ -114,6 +114,22 @@ Decisões de 09/09/2026 (Eric, Asafe, Victor), registradas para quem revisar:
   telefone como id (é para ele que o envio vai; a mcp-api resolve o `@lid` sozinha), e as
   mensagens dos dois chats saem juntas em ordem de tempo.
 
+## Atualizar
+
+```bash
+git pull
+node scripts/instalar/agente.mjs --valendo
+```
+
+Idempotente: aplica só a migration que falta, cria o par de tabelas de canal novo, garante os
+buckets e não sobrescreve nenhuma chave do `.env.local`. Reinicie o `npm run dev`; na Vercel,
+`--valendo --vercel` sobe as envs e `vercel --prod` publica.
+
+Depois de uma atualização que traga recurso novo no canal do agent (etiqueta, ficha, nota,
+concluir), a primeira ação do atendente cria a linha de estado daquela conversa. Se a ação
+responder **503 pedindo `criar_canal_whatsapp`**, é porque o passo das tabelas do canal não
+rodou: repita o comando acima.
+
 ## Quando algo não aparece
 
 - **Canal não está no seletor**: falta `WA_SUPABASE_*` (ou `MSG_SUPABASE_*`) ou `ativo` não é
