@@ -328,6 +328,7 @@ export async function enviarWa(inst: InstanciaWa, canalId: string, chatId: strin
         tipo: pedido.midia?.tipo ?? "text",
         mediaUrl,
         fileName: pedido.midia?.fileName ?? null,
+        allowNew: !!pedido.allowNew,
       })
     );
     if (!r) return { ok: false, status: 501, error: "envio pelo agente nao configurado (WA_MCP_URL/WA_MCP_KEY)" };

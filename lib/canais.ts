@@ -350,11 +350,19 @@ export function envioDisponivel(canal: string): boolean {
 // Responsaveis e visibilidade NAO entram aqui: vivem em tabelas do painel
 // chaveadas por (canal, chat_id) e funcionam pra qualquer canal.
 // ENVIAR e outra pergunta (`envioDisponivel`): o whatsapp-agent e fonte externa
-// (nao tem linha de conversa aqui) E envia, pela mcp-api do agente.
+// E envia, pela mcp-api do agente.
 export function fonteExterna(canal: CanalDef): boolean {
   return canal.fonte === "instagram-agent" || canal.fonte === "whatsapp-agent";
 }
+// SEM ESTADO NO PAINEL = fonte externa cujo canal nao tem o par de tabelas
+// conversas_<id>/mensagens_<id> aqui. O whatsapp-agent TEM (funcao
+// criar_canal_whatsapp da 0007, chamada pelo /setup): status, etiqueta, ficha,
+// arquivo e nota interna moram nessa linha, e so o conteudo vem do agente
+// (lib/estado-externo.ts). O instagram-agent segue somente leitura.
+export function semEstadoNoPainel(canal: CanalDef): boolean {
+  return canal.fonte === "instagram-agent";
+}
 export function somenteLeitura(canal: string): boolean {
   const c = canalPorId(canal);
-  return !!c && fonteExterna(c);
+  return !!c && semEstadoNoPainel(c);
 }

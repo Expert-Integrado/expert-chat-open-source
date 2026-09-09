@@ -3359,7 +3359,7 @@ export default function Home({ embed = false, ctxToken = "" }: { embed?: boolean
   function canaisParaIniciar() {
     return canais.filter(
       (c) =>
-        c.ativo && c.tipo === "whatsapp" && c.fonte !== "instagram-agent" && c.fonte !== "whatsapp-agent" && c.fonte !== "gupshup"
+        c.ativo && c.tipo === "whatsapp" && c.fonte !== "instagram-agent" && c.fonte !== "gupshup"
     );
   }
 

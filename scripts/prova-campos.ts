@@ -1340,13 +1340,13 @@ t("degradacao em DUAS camadas: coluna ausente e RPC ausente, com reteste", () =>
   // invariante. E ela e RIGIDA ao nome `canaisComFicha` (4a revisao cega mediu:
   // renomear o helper reprova aqui) — renomeou? ajuste a guarda no mesmo commit.
   eq(
-    (LIB_DB.match(/!fonteExterna\(c\)/g) || []).length,
+    (LIB_DB.match(/!semEstadoNoPainel\(c\)/g) || []).length,
     1,
     "o filtro de fonte externa deixou de ter origem unica: copia dele em outro lugar volta a poder ser removida de UM dos usos sem ninguem ver"
   );
   eq((LIB_DB.match(/canaisDaFicha\(\)/g) || []).length >= 2, true,
     "as duas travessias deixaram de sair do MESMO denominador (`canaisDaFicha`)");
-  eq(/function canaisComFicha\(\)[\s\S]{0,200}?!fonteExterna\(c\)/.test(LIB_DB), true,
+  eq(/function canaisComFicha\(\)[\s\S]{0,200}?!semEstadoNoPainel\(c\)/.test(LIB_DB), true,
     "o filtro de fonte externa nao esta mais dentro de `canaisComFicha` (renomeou o helper? ajuste a guarda junto; tirou o filtro dele? isso e o defeito)");
   // a contagem de reserva nao monta caminho de jsonb com nome torto
   eq(

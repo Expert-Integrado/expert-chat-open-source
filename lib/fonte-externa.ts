@@ -57,6 +57,8 @@ export type PedidoEnvio = {
   texto: string;
   quoted: string | null;
   midia?: { tipo: "image" | "audio" | "ptt" | "video" | "document"; dataUri: string; fileName?: string | null };
+  // primeiro contato: numero que ainda nao tem chat no agente (exige a instancia)
+  allowNew?: boolean;
 };
 
 export type MensagemRef = { id: string; chat_id: string; provider_msg_id: string | null; direcao: string; is_deleted: boolean };

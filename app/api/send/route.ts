@@ -21,6 +21,7 @@ import { getPerfil, podeVerConversa, permitido, contaDoUsuario } from "@/lib/per
 import { responderZeraNaoLidas, textoComAssinatura } from "@/lib/conversa-automatica";
 import { canalDeBody, tabelas } from "@/lib/canal";
 import { fonteLigada } from "@/lib/fonte-externa";
+import { estadosDe, garantirLinha } from "@/lib/estado-externo";
 import { DESTINO_WA_AGENT } from "@/lib/whatsapp-agent-formato";
 import { credsGupshup, gsEnviarTemplate, gsSendText, gsSendInterativo, janela24h } from "@/lib/gupshup";
 import { restricaoEfetiva } from "@/lib/embed";
@@ -209,6 +210,24 @@ export async function POST(req: NextRequest) {
     });
     if (!r.ok) {
       return NextResponse.json({ error: r.error, ...(r.detalhe ? { detalhe: r.detalhe } : {}) }, { status: r.status });
+    }
+    // RESPONDI NESTA CONVERSA vale aqui tambem: status por `statusAoResponder`,
+    // posse de quem responde, auto-arquivar — na linha de estado do painel
+    // (nasce agora se nao existia). Melhor-esforco: sem tabelas, a mensagem ja saiu.
+    try {
+      const g = await garantirLinha(canal, String(chat_id));
+      if (g.ok) {
+        const est = (await estadosDe(canal, [String(chat_id)])).get(String(chat_id));
+        if (est) {
+          await efeitosDeResposta(
+            { canal, chat_id: String(chat_id), usuario: { id: user.id, nome: user.nome }, origem: "manual", trilha: false },
+            { status: est.status, auto_arquivar: est.auto_arquivar },
+            `${user.nome}: ${text || PREVIEW_TIPO[tipo as string] || "[midia]"}`
+          );
+        }
+      }
+    } catch (e: any) {
+      console.error("efeitos de resposta no canal externo:", e?.message);
     }
     return NextResponse.json({ ok: true, messageId: r.messageId });
   }

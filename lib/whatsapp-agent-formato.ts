@@ -339,6 +339,7 @@ export function corpoEnvio(p: {
   tipo?: TipoEnvio;
   mediaUrl?: string | null;
   fileName?: string | null;
+  allowNew?: boolean;
 }) {
   return {
     action: "send",
@@ -354,6 +355,8 @@ export function corpoEnvio(p: {
       agent_name: AGENT_NAME,
       instance: p.instance_id,
       ...(p.quoted ? { reply_to: p.quoted } : {}),
+      // numero novo: o agente cria o chat (canonicalizando o 9o digito) — so com instance
+      ...(p.allowNew ? { allow_new: true } : {}),
     },
   };
 }

@@ -633,8 +633,8 @@ t("a chave vai em UM cabecalho, e o redirect nao e seguido", () => {
 });
 
 t("o gate de canal somente-leitura existe (mesmo recurso, mesma tabela do /api/nota)", () => {
-  assert.ok(/somenteLeitura\(canal\)/.test(SRC_ROTA), "sem ele o insert morria em 42P01 e a rota devolvia 500 cru");
-  const iGate = SRC_ROTA.indexOf("somenteLeitura(canal)");
+  assert.ok(/prepararEstadoExterno\(canal, chat_id/.test(SRC_ROTA), "sem ele o insert morria em 42P01 e a rota devolvia 500 cru (403 sem estado; linha garantida no canal do agente)");
+  const iGate = SRC_ROTA.indexOf("prepararEstadoExterno(canal, chat_id");
   const iFetch = SRC_ROTA.indexOf("await fetch(cfg.url");
   assert.ok(iGate > 0 && iFetch > iGate, "e ANTES da chamada paga: nao paga por transcricao que nao tem onde ser gravada");
 });

@@ -79,14 +79,17 @@ Faça um build novo (variável só entra em build novo) e o canal aparece no sel
 
 | Funciona | Ainda não (v1) |
 |---|---|
-| Lista de conversas, grupos inclusive, com foto e "não lida"; o chat `@lid` e o do telefone da mesma pessoa aparecem como uma conversa só | Etiqueta, ficha editável, nota interna, concluir conversa: 403 "somente leitura", porque a linha da conversa não existe no banco do painel |
-| Mensagens com texto, mídia (URL assinada de 1h do Storage do agent), áudio já transcrito pelo agent, reações | Pesquisa de satisfação, SLA e relatório de atendimento ficam parciais (o agent não gera esses eventos) |
-| Enviar **texto e mídia** (foto, vídeo, áudio, documento), com resposta citada; a mídia fica guardada no bucket `midia-mensagens` do painel e vai como URL | Iniciar conversa com número novo pelo painel |
-| Reagir a mensagem (tool `react` da mcp-api; a reação aparece no próximo carregamento, vinda do banco do agent) | Pergunta com opções e template (não existem no agent) |
+| Lista de conversas, grupos inclusive, com foto e "não lida"; o chat `@lid` e o do telefone da mesma pessoa aparecem como uma conversa só | SLA e relatórios de mensagens por dia e por atendente: leem as tabelas de mensagens do painel, que neste canal só têm as anotações. A satisfação (CSAT) entra normalmente |
+| Mensagens com texto, mídia (URL assinada de 1h do Storage do agent), áudio já transcrito pelo agent, reações, anotações internas | Pergunta com opções e template (não existem no agent) |
+| Enviar **texto e mídia** (foto, vídeo, áudio, documento), com resposta citada; a mídia fica guardada no bucket `midia-mensagens` do painel e vai como URL. Responder assume a conversa e muda o status, como no canal principal | |
+| Reagir a mensagem (tool `react` da mcp-api; a reação aparece no próximo carregamento, vinda do banco do agent) | |
+| **Estado de atendimento**: status (aberto, atendimento, concluído, aguardando), etiquetas, ficha com campos, nota interna, transcrição, arquivar, auto-arquivar. Mora na linha do painel, criada na primeira ação (`select mensageria.criar_canal_whatsapp('agente')`, que o `/setup` roda) | |
+| Pesquisa de satisfação ao concluir: a pergunta sai pela mcp-api e a nota é reconhecida quando a conversa é lida no painel | |
+| Iniciar conversa com número novo pelo painel (a mcp-api cria o chat no agent) | |
 | Busca por conteúdo (índice do agent); responsável por pessoa e departamento, visibilidade, escopo por papel, funis | |
 
-Cada item da direita entra depois sem mexer no que já está: etiqueta/nota/status pedem uma
-tabela de estado no painel chaveada por canal e `chat_id` (migration aditiva).
+Os relatórios de mensagens exigiriam espelhar as mensagens do agent na tabela do painel ou
+reescrever as funções SQL para lerem `public.messages`. Decisão para a revisão, não para esta versão.
 
 ## Por que assim
 
@@ -99,9 +102,10 @@ Decisões de 09/09/2026 (Eric, Asafe, Victor), registradas para quem revisar:
   instância e log. Z-API direto seria mais simples e furaria as três.
 - **Um Supabase só.** O painel vive no schema `mensageria`, o agent em `public`. Sem colisão,
   e o aluno não cria projeto novo.
-- **Fonte externa = sem linha de conversa no painel.** Por isso etiqueta, nota, status e ficha
-  ficam 403 nesta versão: precisam de uma tabela de estado chaveada por canal e `chat_id`
-  (migration aditiva), que entra na v2.
+- **Estado no par de tabelas do canal, sem migration nova.** O canal do agent ganha
+  `conversas_agente`/`mensagens_agente` como qualquer canal extra (função da 0007). A linha nasce
+  na primeira ação do atendente, porque o agent não manda webhook para o painel. O Instagram
+  segue somente leitura (`semEstadoNoPainel`).
 - **@lid.** O agent guarda parte do tráfego de um contato num chat `@lid` e parte no chat do
   telefone (`lid_mapping` casa os dois). O painel funde os dois numa conversa só, com o
   telefone como id (é para ele que o envio vai; a mcp-api resolve o `@lid` sozinha), e as

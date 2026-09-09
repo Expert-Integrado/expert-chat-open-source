@@ -1002,9 +1002,9 @@ const em = (j: JanelaAcesso, iso: string, fuso = SP) => acessoPermitido(j, new D
       "/api/visibilidade importa e usa somenteLeitura (o ramo de auto_arquivar escreve na tabela do canal)"
     );
     eq(
-      /autoArquivar !== undefined && somenteLeitura\(canal\)/.test(src),
+      /if \(autoArquivar !== undefined\) \{[\s\S]{0,400}?prepararEstadoExterno\(canal/.test(src),
       true,
-      "e o guard fica NO RAMO de auto_arquivar — visibilidade pura segue valendo pra canal de fonte externa"
+      "e o guard fica NO RAMO de auto_arquivar (403 sem estado, linha garantida no canal do agente) — visibilidade pura segue valendo pra canal de fonte externa"
     );
     eq(/\bcanalDeBody\b/.test(src), true, "e o canal continua saindo de canalDeBody, nao de comparacao a mao");
   }

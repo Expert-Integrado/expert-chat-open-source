@@ -3,7 +3,7 @@ import { msgDb } from "@/lib/mensageria";
 import { getUser } from "@/lib/auth-server";
 import { getPerfil, podeVerConversa } from "@/lib/perfil";
 import { canalDeBody, tabelas } from "@/lib/canal";
-import { somenteLeitura } from "@/lib/canais";
+import { prepararEstadoExterno } from "@/lib/estado-externo";
 import { restricaoEfetiva } from "@/lib/embed";
 
 export const dynamic = "force-dynamic";
@@ -46,14 +46,10 @@ export async function POST(req: NextRequest) {
   if (emb && !emb.permite(String(chat_id))) {
     return NextResponse.json({ error: "fora do contexto" }, { status: 403 });
   }
-  // fonte externa (instagram-agent): etiqueta mora na linha da conversa do painel,
-  // que este canal nao tem — 403 explicito em vez de 500
-  if (somenteLeitura(canal)) {
-    return NextResponse.json(
-      { error: "canal somente leitura: etiquetas ainda nao disponiveis pra este canal" },
-      { status: 403 }
-    );
-  }
+  // fonte externa: a etiqueta mora na linha da conversa do painel — o canal do
+  // agente ganha a linha aqui; o instagram-agent (sem estado) segue 403
+  const bloqueio = await prepararEstadoExterno(canal, String(chat_id), "etiquetas");
+  if (bloqueio) return bloqueio;
   const db = msgDb();
   const { data: catalogo } = await db.from("etiquetas_catalogo").select("nome").eq("ativo", true);
   const validas = new Set((catalogo ?? []).map((e) => e.nome));

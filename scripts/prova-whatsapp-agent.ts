@@ -230,6 +230,8 @@ bloco("corpo do send: confirmado, sem teatro de digitacao, forcando o gate de in
   assert.equal(c.params.instance, "3E0A2", "nunca a default: o numero do canal");
   assert.equal(c.params.reply_to, "3EA9");
   assert.ok(!("reply_to" in corpoEnvio({ chat_id: "x", texto: "t", instance_id: "i" }).params), "sem quote nao manda reply_to");
+  assert.ok(!("allow_new" in c.params), "conversa existente NAO leva allow_new (a mcp-api criaria chat fantasma)");
+  assert.equal(corpoEnvio({ chat_id: "x", texto: "t", instance_id: "i", allowNew: true }).params.allow_new, true, "iniciar conversa: allow_new com a instancia do canal");
   assert.ok(!("confirmed_voice" in c.params), "o voice gate do agente NAO e bypassado pelo painel");
 });
 
@@ -306,9 +308,15 @@ bloco("rota nenhuma importa adaptador de fonte externa direto: tudo passa por li
   assert.deepEqual(libs, [], "lib importando adaptador direto");
 });
 
-bloco("lib/canais.ts: whatsapp-agent e fonte externa (sem linha no painel) E envia (WA_MCP_*)", () => {
+bloco("lib/canais.ts: whatsapp-agent e fonte externa COM estado no painel, e envia (WA_MCP_*)", () => {
   const src = readFileSync("lib/canais.ts", "utf8");
   assert.match(src, /canal\.fonte === "instagram-agent" \|\| canal\.fonte === "whatsapp-agent"/, "fonteExterna cobre as duas");
+  assert.match(src, /function semEstadoNoPainel[\s\S]{0,80}=== "instagram-agent";/, "so o instagram-agent e sem estado (somente leitura)");
+  for (const rota of ["app/api/etiquetas/route.ts", "app/api/nota/route.ts", "app/api/ficha/route.ts", "app/api/transcricao/route.ts", "app/api/visibilidade/route.ts"]) {
+    assert.match(readFileSync(rota, "utf8"), /prepararEstadoExterno\(canal/, `${rota}: escrita de estado passa pelo gate unico (403 sem estado / linha garantida / 503 sem tabelas)`);
+  }
+  assert.match(readFileSync("app/api/conversa/route.ts", "utf8"), /fonteCsat === "whatsapp-agent"/, "pesquisa de satisfacao sai pela mcp-api no canal do agente");
+  assert.match(readFileSync("app/api/messages/route.ts", "utf8"), /reconhecerNotaExterna\(canal, chatId/, "a nota do cliente e reconhecida na leitura");
   assert.match(src, /c\.fonte === "whatsapp-agent"[\s\S]{0,300}WA_MCP_URL && process\.env\.WA_MCP_KEY/, "envioDisponivel liga com WA_MCP_URL+WA_MCP_KEY");
   assert.match(src, /"instagram-agent", "whatsapp-agent"\]/, "a lista FONTES aceita a fonte nova em CANAIS_EXTRA");
 });

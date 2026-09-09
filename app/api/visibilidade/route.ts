@@ -2,7 +2,9 @@ import { timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { msgDb } from "@/lib/mensageria";
 import { canalDeBody, tabelas } from "@/lib/canal";
-import { somenteLeitura } from "@/lib/canais";
+import { canalPorId, fonteExterna, somenteLeitura as somenteLeituraCanal } from "@/lib/canais";
+const ehExterno = (c: string) => { const d = canalPorId(c); return !!d && fonteExterna(d); };
+import { garantirLinhas, prepararEstadoExterno } from "@/lib/estado-externo";
 import { getUser } from "@/lib/auth-server";
 import { getPerfil, permitido } from "@/lib/perfil";
 import { derrubarCacheEmbed } from "@/lib/embed";
@@ -99,11 +101,14 @@ export async function POST(req: NextRequest) {
   // Virou possivel agora: esta rota resolvia canal a mao entre dois ids fixos e
   // passou a aceitar QUALQUER canal registrado (`canalDeBody`), fonte externa
   // inclusive.
-  if (autoArquivar !== undefined && somenteLeitura(canal)) {
-    return NextResponse.json(
-      { error: "canal somente leitura: arquivar automatico ainda nao disponivel pra este canal (a visibilidade, sim — mande so set/add/remove)" },
-      { status: 403 }
-    );
+  if (autoArquivar !== undefined) {
+    // o primeiro id passa pelo gate (403 sem estado / 503 sem tabelas); o resto vai em lote
+    const bloqueio = await prepararEstadoExterno(canal, String(chatIds[0]), "arquivar automatico (a visibilidade, sim — mande so set/add/remove)");
+    if (bloqueio) return bloqueio;
+    if (!somenteLeituraCanal(canal) && ehExterno(canal)) {
+      const g = await garantirLinhas(canal, chatIds.map(String));
+      if (!g.ok) return NextResponse.json({ error: g.aviso }, { status: g.status });
+    }
   }
 
   const db = msgDb();

@@ -11,7 +11,7 @@
 // `tipos_disponiveis: false` — some o TIPO, nao o campo. Re-testa a cada 60s: no
 // minuto seguinte a migration rodar, passa a valer sem redeploy.
 import { msgDb } from "@/lib/mensageria";
-import { fonteExterna, listarCanais } from "@/lib/canais";
+import { listarCanais, semEstadoNoPainel } from "@/lib/canais";
 import {
   campoDaLinha,
   medirImpacto,
@@ -136,7 +136,7 @@ export async function impactoDoCampo(nome: string): Promise<ImpactoCampo> {
  * OS CANAIS QUE TEM FICHA — o denominador das DUAS travessias (impacto e renome) e
  * do efeito injetado da rota de arquivamento.
  *
- * Canal de fonte externa (instagram-agent) nao tem tabela de conversa no painel:
+ * Canal de fonte externa SEM estado no painel (instagram-agent) nao tem tabela de conversa:
  * a ficha dele nao existe, entao nao ha valor pra contar la. Incluir o canal na
  * varredura produziria `null` (tabela ausente) e o impacto sairia INCOMPLETO pra
  * sempre, travando toda remocao de campo da instalacao.
@@ -151,7 +151,7 @@ export async function impactoDoCampo(nome: string): Promise<ImpactoCampo> {
  * RECUSAR. Por isso nao ha `?? [algum canal]` em lugar nenhum aqui.
  */
 function canaisComFicha() {
-  return listarCanais().filter((c) => !fonteExterna(c));
+  return listarCanais().filter((c) => !semEstadoNoPainel(c));
 }
 
 /** os ids dos canais varridos — o `canais` do efeito de arquivamento */

@@ -7,6 +7,7 @@ import { getPerfil, contextoVisao, conversaVisivel, Responsavel, VisibilidadeEnt
 import { canalDe, tabelas } from "@/lib/canal";
 import { canalPorId, canaisAtivos, canalPublico, fonteExterna } from "@/lib/canais";
 import { externaDisponivel, fonteLigada } from "@/lib/fonte-externa";
+import { estadosDe } from "@/lib/estado-externo";
 import { sincronizarApioficial } from "@/lib/sync-apioficial";
 import { fusoDaConfig, getConfig } from "@/lib/config";
 import { restricaoEfetiva, vinculosBu } from "@/lib/embed";
@@ -73,6 +74,12 @@ export async function GET(req: NextRequest) {
     // (fonte externa nao pagina nem busca: a lista dela ja e o que o agente devolve)
     const ext = await fonteLigada(def);
     if (ext) [conversas, ultimas] = await Promise.all([ext.listarConversas(), ext.ultimasMensagens()]);
+    // o ESTADO (status, arquivo, responsavel legado) e do painel; o conteudo e do agente
+    const estados = await estadosDe(canal, conversas.map((c) => c.chat_id));
+    conversas = conversas.map((c) => {
+      const e = estados.get(c.chat_id);
+      return e ? { ...c, status: e.status, arquivada: e.arquivada, auto_arquivar: e.auto_arquivar, responsavel_id: e.responsavel_id, responsavel_nome: e.responsavel_nome, responsavel_tipo: e.responsavel_tipo } : c;
+    });
   } else {
     // canal oficial: materializa a entrada nova (Gupshup -> webhook_events) antes de listar
     if (canal === "apioficial") await sincronizarApioficial();

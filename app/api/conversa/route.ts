@@ -4,7 +4,9 @@ import { getUser } from "@/lib/auth-server";
 import { getPerfil, podeVerConversa, permitido } from "@/lib/perfil";
 import { getConfig } from "@/lib/config";
 import { canalDeBody, tabelas, Canal } from "@/lib/canal";
-import { somenteLeitura } from "@/lib/canais";
+import { canalPorId, fonteExterna, somenteLeitura } from "@/lib/canais";
+import { garantirLinha } from "@/lib/estado-externo";
+import { fonteLigada } from "@/lib/fonte-externa";
 import { restricaoEfetiva, derrubarCacheEmbed } from "@/lib/embed";
 import { avisarStatus, getAssinantes } from "@/lib/webhooks-saida";
 import {
@@ -85,6 +87,12 @@ export async function POST(req: NextRequest) {
   // da conversa, que nao existe no banco do painel — 403 explicito em vez de 500.
   // Responsaveis e visibilidade seguem funcionando (tabelas do painel por canal).
   const soLeitura = somenteLeitura(canal);
+  // canal do agente: a linha de estado nasce na primeira acao (lib/estado-externo.ts)
+  const defCanal = canalPorId(canal);
+  if (defCanal && fonteExterna(defCanal) && !soLeitura) {
+    const g = await garantirLinha(canal, String(chat_id));
+    if (!g.ok) return NextResponse.json({ error: g.aviso }, { status: g.status });
+  }
   // Concluir/reabrir/arquivar e acao de atendimento: pede "concluir".
   // Sem papel nomeado todo atendente tem, entao nada muda pra quem ja usa.
   //
@@ -326,6 +334,14 @@ export async function POST(req: NextRequest) {
             if (creds) {
               await evoSendText(creds, String(chat_id), cfg.csat_msg.trim(), null);
               patch.aguardando_avaliacao = true;
+            }
+          } else if (fonteCsat === "whatsapp-agent" && defCanal) {
+            // pela mcp-api do agente, como toda saida deste canal; a NOTA volta
+            // pelo banco do agente e e lida em /api/messages (lib/csat-externo.ts)
+            const ext = await fonteLigada(defCanal);
+            if (ext?.enviar) {
+              const r = await ext.enviar(String(chat_id), { texto: cfg.csat_msg.trim(), quoted: null });
+              if (r.ok) patch.aguardando_avaliacao = true;
             }
           }
         } catch {
