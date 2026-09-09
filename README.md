@@ -114,7 +114,11 @@ Em supabase.com, crie um projeto novo. Depois, em **Settings → API**, guarde d
 seu gerenciador de senhas e não deixe ela chegar ao navegador, a um print, a um repositório ou
 a uma mensagem — nem pra você mesmo depois.
 
-Ainda no Supabase, vá em **Database → Extensions** e habilite **`pg_cron`** e **`pg_net`**.
+Ainda em **Settings → API**, no campo **Exposed schemas**, acrescente **`mensageria`** à lista
+(sem tirar `public`). O painel inteiro fala com o banco por esse schema; sem isso ele sobe e
+não lê nada. Isso não abre dado nenhum: em `mensageria` só a `service_role` tem permissão.
+
+Depois, vá em **Database → Extensions** e habilite **`pg_cron`** e **`pg_net`**.
 Sem elas as rotinas automáticas (agendamento, automação, alertas) não têm como rodar. As duas
 existem no plano gratuito.
 

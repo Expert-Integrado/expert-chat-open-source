@@ -265,3 +265,27 @@ export function migrationsARodar(avaliadas, novaInstalacao) {
 export function faltandoAposAplicar(avaliadasDepois) {
   return avaliadasDepois.filter((a) => a.veredito?.estado === "ausente" || a.veredito?.estado === "PARCIAL").map((a) => a.arquivo);
 }
+
+// ── o schema exposto no PostgREST ───────────────────────────────────────────
+//
+// O painel INTEIRO fala com o banco por `db: { schema: "mensageria" }`
+// (lib/mensageria.ts). O PostgREST so serve schema que esta em `db_schema`
+// (Settings → API → Exposed schemas), e um projeto nasce com
+// "public,graphql_public". Sem `mensageria` ali, migration aplicada e produto
+// que nao sobe — e a sonda deste instalador acusa 18 migrations "ausentes"
+// que existem (sessao vizinha, 09/09/2026, medido por SQL).
+//
+// NUNCA substituir a lista: apagar `public` derruba o agente; `graphql_public`
+// idem pro GraphQL. Acrescenta ao fim, idempotente.
+//
+// SEGURANCA (verificado): expor o schema nao abre nada — em `mensageria` so a
+// service_role tem GRANT; anon/authenticated nao tem privilegio em tabela
+// nenhuma. Parte das tabelas nao tem RLS e o que as protege e justamente a
+// AUSENCIA de GRANT: um `grant ... to anon` futuro derruba isso de uma vez.
+export const SCHEMA_DO_PAINEL = "mensageria";
+
+export function dbSchemaComPainel(atual) {
+  const lista = String(atual || "").split(",").map((x) => x.trim()).filter(Boolean);
+  if (lista.includes(SCHEMA_DO_PAINEL)) return { precisa: false, novo: lista.join(", ") };
+  return { precisa: true, novo: [...lista, SCHEMA_DO_PAINEL].join(", ") };
+}

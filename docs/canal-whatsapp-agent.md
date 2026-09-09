@@ -43,6 +43,9 @@ Com um projeto só, `WA_SUPABASE_URL` e `WA_SUPABASE_SERVICE_KEY` **não precisa
 o painel usa as mesmas `MSG_SUPABASE_*`. Se o agent estiver em outro projeto, preencha as duas com
 a URL e a `service_role` dele.
 
+Ainda em **Settings → API**, acrescente `mensageria` em **Exposed schemas** (o `/setup` faz isso
+sozinho; na instalação manual é gesto seu). Sem isso o painel sobe e não lê nada.
+
 ### 2. Variáveis
 
 | Variável | O que é | Obrigatória? |

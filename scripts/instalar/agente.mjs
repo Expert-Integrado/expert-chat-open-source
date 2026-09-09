@@ -28,7 +28,7 @@ import assert from "node:assert/strict";
 import {
   BUCKETS_DO_PAINEL, CHAVES_DO_AGENTE, ENV_DO_AGENTE, MARCA_DO_AGENTE, SQL_BUCKETS, SQL_EXTENSOES, candidatosDePasta, canalDoAgente, chaveDoAuth,
   chaveDoBanco, chaveDoClaudeJson, ehJwt, emailValido, escolherAnon, escolherChaveMcp, escolherSecret, faltamNoAgente,
-  faltandoAposAplicar, literal, migrationsARodar, parseEnv, planoEnvLocal, refValido,
+  dbSchemaComPainel, faltandoAposAplicar, literal, migrationsARodar, parseEnv, planoEnvLocal, refValido,
   renderEnv, sqlIdPorEmail, sqlPerfilAdmin, sqlTickBearer, uuidValido,
 } from "./agente-plano.mjs";
 import { lerNomeDeMigration, objetosDaMigration, vereditoDaMigration } from "./plano.mjs";
@@ -164,7 +164,26 @@ async function main() {
   //    aplicada (ver migrationsARodar em agente-plano.mjs pra saber por que).
   const migrations = lerMigrations();
   const cabecalho = { apikey: serviceRole, Authorization: `Bearer ${serviceRole}`, "Accept-Profile": "mensageria" };
-  const temSchema = (await http(`${url}/rest/v1/config?select=chave&limit=0`, { headers: cabecalho })).status === 200;
+  const sondaVe = async () => (await http(`${url}/rest/v1/config?select=chave&limit=0`, { headers: cabecalho })).status === 200;
+
+  // 3b. o schema do painel exposto no PostgREST (sem isso NADA do painel fala
+  //     com o banco — ver dbSchemaComPainel em agente-plano.mjs). Acrescenta, nunca troca.
+  const cfg = await api(`/v1/projects/${ref}/postgrest`);
+  if (cfg.status >= 400) { log(`**Nao consegui ler a config do PostgREST (HTTP ${cfg.status}).** O PAT precisa de acesso ao projeto.`); process.exitCode = 1; return; }
+  const exp = dbSchemaComPainel(cfg.json?.db_schema);
+  log(`3b. Schema \`mensageria\` exposto no PostgREST: ${exp.precisa ? (valendo ? "nao estava — expondo agora" : "NAO esta — sera exposto") : "ok"} (db_schema: ${exp.novo}).`);
+  if (valendo && exp.precisa) {
+    const r = await api(`/v1/projects/${ref}/postgrest`, "PATCH", { db_schema: exp.novo });
+    if (r.status >= 400) { log(`**Falha ao expor o schema (HTTP ${r.status}):** ${r.json?.message || r.texto.slice(0, 200)}`); process.exitCode = 1; return; }
+  }
+  // PostgREST recarrega a config/schema com atraso: espera ate 30s so quando ha
+  // o que ver (schema ja criado); em instalacao nova a espera fica pro passo 4.
+  const esperarSonda = async (segundos) => {
+    for (let i = 0; i < segundos; i++) { if (await sondaVe()) return true; await new Promise((r) => setTimeout(r, 1000)); }
+    return sondaVe();
+  };
+  let temSchema = await sondaVe();
+  if (!temSchema && exp.precisa && valendo) temSchema = await esperarSonda(30);
   const avaliar = async () => {
     const sonda = await sondar(url, serviceRole, migrations);
     return migrations.map((m) => ({ ...m, veredito: vereditoDaMigration(m.objetos, sonda) }));
@@ -182,7 +201,10 @@ async function main() {
     }
     // O ALERTA DURO: depois de aplicar, a sonda nao pode achar nada ausente ou
     // pela metade. Saida de sucesso igual a saida com migration faltando e o
-    // pior estado possivel (o painel degrada com aviso discreto).
+    // pior estado possivel (o painel degrada com aviso discreto). Antes disso,
+    // o PostgREST precisa enxergar o schema recem-criado (reload + espera).
+    await sql(api, ref, "notify pgrst, 'reload schema';");
+    if (!(await esperarSonda(30))) { log("**PostgREST ainda nao enxerga o schema mensageria** depois de 30s. Espere um minuto e rode de novo (so confere; nao reaplica o que esta ok)."); process.exitCode = 1; return; }
     const faltando = faltandoAposAplicar(await avaliar());
     if (faltando.length) { log(`**PAROU: ${aplicadas} aplicada(s), mas a conferencia ainda acha faltando: ${faltando.join(", ")}.** Nao siga; olhe o SQL Editor.`); process.exitCode = 1; return; }
     log(`   ${aplicadas} de ${migrations.length} aplicada(s); conferencia depois: nada ausente nem pela metade.`);
@@ -318,6 +340,13 @@ function prova() {
     assert.equal(migrationsARodar(meio, false).length, arqs.length - 5);
     assert.ok(migrationsARodar(meio, false).some((a) => a.veredito.estado === "sem objeto probavel" || a.veredito.estado === "nao verificavel"), "so-coluna e so-funcao ENTRAM (era o que sumia)");
     assert.deepEqual(faltandoAposAplicar([{ arquivo: "a", veredito: { estado: "aplicada" } }, { arquivo: "b", veredito: { estado: "PARCIAL" } }, { arquivo: "c", veredito: { estado: "nao verificavel" } }]), ["b"], "so-funcao nao e prova de falta; PARCIAL e");
+  });
+
+  t("schema exposto: acrescenta mensageria SEM tirar public/graphql_public; idempotente", () => {
+    assert.deepEqual(dbSchemaComPainel("public,graphql_public"), { precisa: true, novo: "public, graphql_public, mensageria" });
+    assert.deepEqual(dbSchemaComPainel("public, graphql_public, mensageria"), { precisa: false, novo: "public, graphql_public, mensageria" });
+    assert.deepEqual(dbSchemaComPainel(""), { precisa: true, novo: "mensageria" });
+    assert.ok(dbSchemaComPainel("public").novo.startsWith("public"), "public continua na frente");
   });
 
   t("SQL: aspas escapadas, e-mail/uuid validados antes de virar query", () => {
