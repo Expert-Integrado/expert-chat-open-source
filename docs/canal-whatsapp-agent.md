@@ -96,9 +96,10 @@ Decisões de 09/09/2026 (Eric, Asafe, Victor), registradas para quem revisar:
 - **Fonte externa = sem linha de conversa no painel.** Por isso etiqueta, nota, status e ficha
   ficam 403 nesta versão: precisam de uma tabela de estado chaveada por canal e `chat_id`
   (migration aditiva), que entra na v2.
-- **Ponto aberto para revisão:** o agent guarda parte do tráfego de um contato num chat `@lid`
-  e parte no chat do telefone (`lid_mapping` casa os dois). A lista ainda não funde os dois;
-  a fusão está desenhada e entra na próxima rodada.
+- **@lid.** O agent guarda parte do tráfego de um contato num chat `@lid` e parte no chat do
+  telefone (`lid_mapping` casa os dois). O painel funde os dois numa conversa só, com o
+  telefone como id (é para ele que o envio vai; a mcp-api resolve o `@lid` sozinha), e as
+  mensagens dos dois chats saem juntas em ordem de tempo.
 
 ## Quando algo não aparece
 

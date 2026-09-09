@@ -2,10 +2,15 @@ import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import type { CanalDef } from "./canais";
 import type { ConversaExterna, HitExterno, MensagemExterna, RespostaEnvio, UltimaExterna } from "./fonte-externa";
 import {
+  canonico,
   chaveDaInstancia,
   corpoEnvio,
   escolherInstancia,
+  fundirGemeos,
+  idsDaConversa,
   lerRespostaEnvio,
+  MAPA_VAZIO,
+  mapaLid,
   midiaDe,
   padraoBusca,
   paraConversa,
@@ -19,6 +24,7 @@ import {
   SELECT_ULTIMA,
   urlDaMidia,
   type InstanciaWa,
+  type MapaLid,
 } from "./whatsapp-agent-formato";
 
 // Fonte "whatsapp-agent" (09/09/2026) — o Expert Chat como TELA do WhatsApp
@@ -100,6 +106,25 @@ export async function resolverInstanciaWa(canal: CanalDef): Promise<InstanciaWa 
   return escolherInstancia(await instanciasWa(), chaveDaInstancia(canal));
 }
 
+// ---- @lid -> telefone (lid_mapping do agente) --------------------------------
+
+// A tabela e pequena (centenas de linhas) e muda devagar: cache por instancia.
+const LID_TTL_MS = 5 * 60 * 1000;
+const cacheLid = new Map<string, { em: number; mapa: MapaLid }>();
+
+async function mapaLidWa(inst: InstanciaWa): Promise<MapaLid> {
+  const c = cacheLid.get(inst.instance_id);
+  if (c && Date.now() - c.em < LID_TTL_MS) return c.mapa;
+  const { data, error } = await waDb().from("lid_mapping").select("lid,phone").eq("instance_id", inst.instance_id);
+  if (error) {
+    console.error("whatsapp-agent lid_mapping:", error.message);
+    return c?.mapa ?? MAPA_VAZIO; // fail open: sem mapa a lista sai sem fundir, nunca vazia
+  }
+  const mapa = mapaLid((data ?? []) as any[]);
+  cacheLid.set(inst.instance_id, { em: Date.now(), mapa });
+  return mapa;
+}
+
 // ---- conversas -------------------------------------------------------------
 
 // `status@broadcast` e o feed de status do WhatsApp, nao uma conversa
@@ -115,17 +140,20 @@ export async function listarConversasWa(inst: InstanciaWa, limite = 600): Promis
     console.error("whatsapp-agent conversas:", error.message);
     return [];
   }
-  return (data ?? []).map(paraConversa);
+  return fundirGemeos((data ?? []).map(paraConversa), await mapaLidWa(inst));
 }
 
 export async function conversasWaPorIds(inst: InstanciaWa, ids: string[]): Promise<ConversaExterna[]> {
   if (!ids.length) return [];
-  const { data, error } = await chatsDa(inst).in("chat_id", ids.slice(0, 200));
+  const mapa = await mapaLidWa(inst);
+  // o painel pede pelo id canonico (telefone); o agente pode ter a linha so no @lid
+  const todos = [...new Set(ids.slice(0, 200).flatMap((id) => idsDaConversa(id, mapa)))];
+  const { data, error } = await chatsDa(inst).in("chat_id", todos);
   if (error) {
     console.error("whatsapp-agent conversas por id:", error.message);
     return [];
   }
-  return (data ?? []).map(paraConversa);
+  return fundirGemeos((data ?? []).map(paraConversa), mapa);
 }
 
 // Ultimas mensagens do numero inteiro — /api/chats deriva a previa da mensagem
@@ -141,7 +169,8 @@ export async function ultimasMensagensWa(inst: InstanciaWa, limite = 1500): Prom
     console.error("whatsapp-agent ultimas mensagens:", error.message);
     return [];
   }
-  return (data ?? []).map(paraUltima);
+  const mapa = await mapaLidWa(inst);
+  return (data ?? []).map((m: any) => ({ ...paraUltima(m), chat_id: canonico(m.chat_id, mapa) }));
 }
 
 // ---- mensagens de uma conversa ---------------------------------------------
@@ -171,15 +200,17 @@ async function assinarMidias(linhas: any[]): Promise<Map<string, string>> {
 // null = erro de leitura (a rota devolve 500); [] = conversa sem mensagem.
 export async function listarMensagensWa(inst: InstanciaWa, chatId: string, limite = 300): Promise<MensagemExterna[] | null> {
   const db = waDb();
+  // a conversa da tela = o chat do telefone + os @lid mapeados pra ele
+  const ids = idsDaConversa(chatId, await mapaLidWa(inst));
   const [msgRes, chatRes] = await Promise.all([
     db
       .from("messages")
       .select(SELECT_MENSAGEM)
       .eq("instance_id", inst.instance_id)
-      .eq("chat_id", chatId)
+      .in("chat_id", ids)
       .order("message_ts", { ascending: false })
       .limit(limite),
-    db.from("chats").select("chat_name,phone").eq("instance_id", inst.instance_id).eq("chat_id", chatId).maybeSingle(),
+    db.from("chats").select("chat_id,chat_name,phone").eq("instance_id", inst.instance_id).in("chat_id", ids),
   ]);
   if (msgRes.error) {
     console.error("whatsapp-agent mensagens:", msgRes.error.message);
@@ -187,7 +218,11 @@ export async function listarMensagensWa(inst: InstanciaWa, chatId: string, limit
   }
   const linhas = msgRes.data ?? [];
   const assinadas = await assinarMidias(linhas);
-  const contato = (chatRes.data as any)?.chat_name || (chatRes.data as any)?.phone || chatId;
+  const linhasChat = (chatRes.data ?? []) as any[];
+  const contato =
+    linhasChat.map((c) => c.chat_name).find((n) => n && !/^\d+(@lid)?$/.test(n)) ||
+    linhasChat.map((c) => c.phone).find(Boolean) ||
+    chatId;
   const eu = rotuloDaInstancia(inst);
   return linhas.map((m: any) => {
     const md = midiaDe(m);
@@ -208,7 +243,8 @@ export async function buscarMensagensWa(inst: InstanciaWa, q: string, limite = 6
     console.error("whatsapp-agent busca:", error.message);
     return [];
   }
-  return (data ?? []).map(paraHit);
+  const mapa = await mapaLidWa(inst);
+  return (data ?? []).map((m: any) => ({ ...paraHit(m), chat_id: canonico(m.chat_id, mapa) }));
 }
 
 // ---- envio (pela mcp-api do agente) ----------------------------------------

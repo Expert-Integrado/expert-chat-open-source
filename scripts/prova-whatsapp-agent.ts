@@ -31,6 +31,11 @@ import {
   rotuloTipo,
   tipoPainel,
   urlDaMidia,
+  MAPA_VAZIO,
+  canonico,
+  fundirGemeos,
+  idsDaConversa,
+  mapaLid,
   type InstanciaWa,
 } from "../lib/whatsapp-agent-formato.ts";
 
@@ -170,6 +175,37 @@ bloco("previa e busca: mesmo formato que a rota ja consome", () => {
   assert.equal(padraoBusca("100%_a"), "%100\\%\\_a%", "curinga do ilike escapado");
 });
 
+// ── 3b. @lid: a mesma pessoa em dois chats (ponto do Eric na revisao) ─────────
+bloco("lid_mapping: @lid mapeado vira o telefone; os ids de uma conversa incluem os gemeos", () => {
+  const mapa = mapaLid([{ lid: "111@lid", phone: "5511999990009" }, { lid: "222@lid", phone: "5511999990009" }, { lid: "", phone: "x" }]);
+  assert.equal(canonico("111@lid", mapa), "5511999990009");
+  assert.equal(canonico("333@lid", mapa), "333@lid", "@lid sem mapeamento fica como esta");
+  assert.equal(canonico("5511999990009", mapa), "5511999990009");
+  assert.deepEqual(idsDaConversa("5511999990009", mapa), ["5511999990009", "111@lid", "222@lid"]);
+  assert.deepEqual(idsDaConversa("111@lid", mapa), ["5511999990009", "111@lid", "222@lid"], "pedir pelo @lid tambem traz o telefone");
+  assert.deepEqual(idsDaConversa("outro", MAPA_VAZIO), ["outro"]);
+});
+
+bloco("fundirGemeos: uma linha por pessoa, identidade do telefone, o mais recente vence", () => {
+  const mapa = mapaLid([{ lid: "111@lid", phone: "5511999990009" }, { lid: "444@lid", phone: "5511777770000" }]);
+  const tel = paraConversa({ chat_id: "5511999990009", chat_name: "Fulana", is_group: false, last_message_at: "2026-09-09T10:00:00Z", waiting_on: "none" });
+  const lid = paraConversa({ chat_id: "111@lid", chat_name: "111@lid", is_group: false, profile_thumbnail: "https://f/x.jpg", last_message_at: "2026-09-09T12:00:00Z", waiting_on: "me" });
+  const solto = paraConversa({ chat_id: "444@lid", chat_name: "444@lid", is_group: false, last_message_at: "t", waiting_on: "none" });
+  const outra = paraConversa({ chat_id: "5511888880000", chat_name: "Beltrano", is_group: false, last_message_at: "t", waiting_on: "none" });
+  const r = fundirGemeos([tel, lid, solto, outra], mapa);
+  assert.equal(r.length, 3, "tel+lid viram UMA; o @lid sem chat de telefone continua uma linha; a outra fica");
+  const f = r[0];
+  assert.equal(f.chat_id, "5511999990009", "o id canonico e o telefone (e pra ele que o envio vai)");
+  assert.equal(f.nome, "Fulana");
+  assert.equal(f.last_message_at, "2026-09-09T12:00:00Z", "o mais recente dos dois");
+  assert.equal(f.mensagens_nao_lidas, 1, "nao lida em qualquer um dos dois marca a conversa");
+  assert.equal(f.foto_wa_url, "https://f/x.jpg", "foto que so o @lid tinha entra");
+  assert.equal(r[1].chat_id, "5511777770000", "@lid mapeado sem linha de telefone vira o telefone mesmo assim");
+  assert.equal(r[1].nome, "5511777770000", "e nome-lixo (o proprio lid) cai no telefone");
+  assert.equal(r[2].chat_id, "5511888880000");
+  assert.equal(fundirGemeos([tel, lid], MAPA_VAZIO).length, 2, "sem mapa nao funde nada (fail open)");
+});
+
 // ── 4. envio pela mcp-api ────────────────────────────────────────────────────
 bloco("destino no dialeto do agente: telefone, grupo (@g.us ou -group) e @lid", () => {
   for (const ok of ["5511999990009", "120363426941320160@g.us", "5511999990009-1552265144@g.us".replace("-", ""), "120363426941320160-group", "123456789012345@lid"])
@@ -257,6 +293,8 @@ bloco("lib/whatsapp-agent.ts: nunca le o token da instancia; midia assinada por 
   const src = readFileSync("lib/whatsapp-agent.ts", "utf8");
   assert.ok(!/auth_token|client_token/.test(src.replace(/\/\/.*$/gm, "")), "select em wa_instance sem credencial");
   assert.match(src, /createSignedUrls\(paths, 3600\)/);
+  assert.match(src, /from\("lid_mapping"\)\.select\("lid,phone"\)/, "o mapa @lid vem da tabela do agente");
+  assert.match(src, /\.in\("chat_id", ids\)/, "as mensagens de UMA conversa saem dos chats gemeos juntos");
   assert.match(src, /"x-mcp-key": key/, "auth da mcp-api pelo header");
   assert.match(src, /WA_SUPABASE_URL \|\| process\.env\.MSG_SUPABASE_URL/, "um Supabase so: cai no projeto do painel");
 });

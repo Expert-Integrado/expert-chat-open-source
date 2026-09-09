@@ -112,6 +112,75 @@ export function enviadoPorNome(m: { from_me?: boolean | null; sent_by_agent_name
   return m.sent_by_agent_name || null; // null = digitada no aparelho do dono
 }
 
+// ── @lid: a mesma pessoa em dois chats ──────────────────────────────────────
+//
+// Ponto do Eric na revisao (09/09/2026): o WhatsApp multi-device entrega parte
+// do trafego de UM contato num chat `<id>@lid` e parte no chat do telefone. O
+// agente guarda os dois e casa-os por `lid_mapping` (lid -> phone, migration
+// 0016). A tela precisa de UMA conversa por pessoa: o telefone e o id canonico
+// (e pra ele que o envio vai; a mcp-api resolve o @lid sozinha), e as mensagens
+// dos dois chats saem juntas, em ordem de tempo.
+//
+// ponytail: casa pelo `phone` EXATO do mapeamento. Variante do 9o digito (o
+// mesmo numero salvo com e sem 9) e um colapso a mais que o agente faz em
+// `pickPhoneChat`; entra aqui quando alguem medir que acontece no painel.
+
+export type MapaLid = { paraPhone: Map<string, string>; paraLids: Map<string, string[]> };
+
+export function mapaLid(rows: { lid: string; phone: string }[]): MapaLid {
+  const paraPhone = new Map<string, string>();
+  const paraLids = new Map<string, string[]>();
+  for (const r of rows) {
+    if (!r?.lid || !r?.phone) continue;
+    paraPhone.set(r.lid, r.phone);
+    paraLids.set(r.phone, [...(paraLids.get(r.phone) ?? []), r.lid]);
+  }
+  return { paraPhone, paraLids };
+}
+
+export const MAPA_VAZIO: MapaLid = { paraPhone: new Map(), paraLids: new Map() };
+
+// o id que a tela usa: @lid mapeado vira o telefone; o resto passa igual
+export function canonico(chatId: string, mapa: MapaLid): string {
+  return mapa.paraPhone.get(chatId) ?? chatId;
+}
+
+// todos os chat_ids do agente que compoem UMA conversa da tela
+export function idsDaConversa(chatId: string, mapa: MapaLid): string[] {
+  const c = canonico(chatId, mapa);
+  return [...new Set([c, ...(mapa.paraLids.get(c) ?? []), chatId])];
+}
+
+const NOME_LIXO = /^\d+(@lid)?$/;
+
+// Funde os gemeos numa linha so. Vence a identidade do telefone (chat_id e
+// nome); do @lid entram o que o telefone nao tem (nome, foto) e o que for mais
+// recente (last_message_at); "nao lida" e OR. Ordem de entrada preservada.
+export function fundirGemeos(conversas: ConversaExterna[], mapa: MapaLid): ConversaExterna[] {
+  if (!mapa.paraPhone.size) return conversas;
+  const porId = new Map<string, ConversaExterna>();
+  const ordem: string[] = [];
+  for (const c of conversas) {
+    const id = canonico(c.chat_id, mapa);
+    const ehLid = id !== c.chat_id;
+    const atual = porId.get(id);
+    if (!atual) {
+      porId.set(id, ehLid ? { ...c, chat_id: id, nome: NOME_LIXO.test(c.nome) ? id : c.nome } : c);
+      ordem.push(id);
+      continue;
+    }
+    const maisNovo = (c.last_message_at || "") > (atual.last_message_at || "");
+    porId.set(id, {
+      ...atual,
+      nome: NOME_LIXO.test(atual.nome) && !NOME_LIXO.test(c.nome) ? c.nome : atual.nome,
+      foto_wa_url: atual.foto_wa_url || c.foto_wa_url,
+      last_message_at: maisNovo ? c.last_message_at : atual.last_message_at,
+      mensagens_nao_lidas: Math.max(atual.mensagens_nao_lidas, c.mensagens_nao_lidas),
+    });
+  }
+  return ordem.map((id) => porId.get(id)!);
+}
+
 // ── conversas (formato de mensageria.conversas) ─────────────────────────────
 
 export const SELECT_CHAT =
