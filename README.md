@@ -411,7 +411,11 @@ Dois caminhos, e o segundo existe porque o primeiro depende de e-mail:
 
 1. **Link por e-mail.** Na tela de login, "Esqueci minha senha" manda um link pelo Supabase Auth.
    Precisa de **SMTP configurado** no projeto (Authentication → SMTP Settings); o remetente
-   padrão do Supabase é só para teste e limita a poucos e-mails por hora.
+   padrão do Supabase é só para teste e limita a poucos e-mails por hora. O caminho mais curto
+   é o Resend: crie a API key lá, verifique o seu domínio, e no Supabase preencha host
+   `smtp.resend.com`, porta `465`, usuário `resend`, senha = a API key, remetente um e-mail do
+   domínio verificado. Em **Authentication → URL Configuration**, ponha a URL do painel em
+   Site URL e em Redirect URLs, senão o link volta para o endereço errado.
 2. **Senha temporária pelo super admin.** Em Configurações → Acesso → **Redefinir senha**, o
    administrador escolhe a pessoa e o painel gera uma senha temporária, mostrada uma vez. A
    pessoa entra com ela e troca em Meu perfil. Não depende de e-mail.
@@ -465,6 +469,7 @@ decisão do produto, e é o melhor lugar pra entender uma parte do código antes
 | `docs/webhooks-saida.md` | como avisar outro sistema quando algo acontece aqui |
 | `docs/exportacao.md` | tirar os dados de dentro |
 | `docs/canal-whatsapp-agent.md` | usar o painel em cima do WhatsApp Agent que você já tem, sem reinstalar |
+| `docs/api.md` | as rotas da API que um integrador ou agente usa, com os nomes certos dos parâmetros |
 
 ## Licença
 
