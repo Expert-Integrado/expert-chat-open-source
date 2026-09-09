@@ -1,8 +1,15 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import type { CanalDef } from "./canais";
-import type { ConversaExterna, HitExterno, MensagemExterna, RespostaEnvio, UltimaExterna } from "./fonte-externa";
+import type { ConversaExterna, HitExterno, MensagemExterna, MensagemRef, PedidoEnvio, RespostaEnvio, UltimaExterna } from "./fonte-externa";
+import { msgDb } from "./mensageria";
+import { BUCKET_MIDIA } from "./midia-store";
+import { separarDataUri } from "./evolution-formato";
 import {
+  caminhoMidia,
   canonico,
+  corpoReacao,
+  lerRespostaReacao,
+  reacoesPorMensagem,
   chaveDaInstancia,
   corpoEnvio,
   escolherInstancia,
@@ -217,7 +224,7 @@ export async function listarMensagensWa(inst: InstanciaWa, chatId: string, limit
     return null;
   }
   const linhas = msgRes.data ?? [];
-  const assinadas = await assinarMidias(linhas);
+  const [assinadas, reacoes] = await Promise.all([assinarMidias(linhas), reacoesDe(inst, linhas)]);
   const linhasChat = (chatRes.data ?? []) as any[];
   const contato =
     linhasChat.map((c) => c.chat_name).find((n) => n && !/^\d+(@lid)?$/.test(n)) ||
@@ -226,8 +233,39 @@ export async function listarMensagensWa(inst: InstanciaWa, chatId: string, limit
   const eu = rotuloDaInstancia(inst);
   return linhas.map((m: any) => {
     const md = midiaDe(m);
-    return paraMensagem(m, { eu, contato, urlMidia: urlDaMidia(md, md && assinadas.get(`${md.storage_bucket}/${md.storage_path}`)) });
+    const linha = paraMensagem(m, { eu, contato, urlMidia: urlDaMidia(md, md && assinadas.get(`${md.storage_bucket}/${md.storage_path}`)) });
+    return { ...linha, reacao: reacoes.get(m.provider_msg_id) ?? null };
   });
+}
+
+// A reacao vive em message_reactions (o eco do webhook grava a nossa e a do
+// contato). UMA consulta pelos provider_msg_id da pagina.
+async function reacoesDe(inst: InstanciaWa, linhas: any[]): Promise<Map<string, string>> {
+  const ids = linhas.map((m) => m.provider_msg_id).filter(Boolean);
+  if (!ids.length) return new Map();
+  const { data, error } = await waDb()
+    .from("message_reactions")
+    .select("target_msg_id,emoji,reacted_at")
+    .eq("instance_id", inst.instance_id)
+    .in("target_msg_id", ids);
+  if (error) {
+    console.error("whatsapp-agent reacoes:", error.message);
+    return new Map();
+  }
+  return reacoesPorMensagem((data ?? []) as any[]);
+}
+
+// Uma mensagem pelo id do agente — o que a rota de reacao precisa pros gates.
+export async function mensagemWaPorId(inst: InstanciaWa, id: string): Promise<MensagemRef | null> {
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
+  const { data, error } = await waDb()
+    .from("messages")
+    .select("id,chat_id,provider_msg_id,from_me,is_deleted")
+    .eq("instance_id", inst.instance_id)
+    .eq("id", id)
+    .maybeSingle();
+  if (error || !data) return null;
+  return { id: data.id, chat_id: canonico(data.chat_id, await mapaLidWa(inst)), provider_msg_id: data.provider_msg_id, direcao: data.from_me ? "out" : "in", is_deleted: !!data.is_deleted };
 }
 
 // Busca por conteudo (rota /api/busca) — o agente tem indice trigram em content.
@@ -249,25 +287,67 @@ export async function buscarMensagensWa(inst: InstanciaWa, q: string, limite = 6
 
 // ---- envio (pela mcp-api do agente) ----------------------------------------
 
+async function mcpApi(corpo: unknown): Promise<{ status: number; data: any } | null> {
+  const url = process.env.WA_MCP_URL;
+  const key = process.env.WA_MCP_KEY;
+  if (!url || !key) return null;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-mcp-key": key },
+    body: JSON.stringify(corpo),
+    cache: "no-store",
+    signal: AbortSignal.timeout(45_000),
+  });
+  return { status: res.status, data: await res.json().catch(() => ({})) };
+}
+
+// Midia do painel (base64) vira URL publica no bucket de midia do painel — a
+// mcp-api so aceita URL. Mesmo bucket do persistidor (lib/midia-store.ts).
+async function subirMidia(canalId: string, midia: NonNullable<PedidoEnvio["midia"]>): Promise<string> {
+  const { conteudo, mime } = separarDataUri(midia.dataUri);
+  const bytes = Buffer.from(conteudo, "base64");
+  if (!bytes.length) throw new Error("midia vazia");
+  const { caminho, contentType } = caminhoMidia({ canal: canalId, tipo: midia.tipo, mime, fileName: midia.fileName, id: crypto.randomUUID() });
+  const { error } = await msgDb().storage.from(BUCKET_MIDIA).upload(caminho, bytes, { contentType, upsert: false });
+  if (error) throw new Error(`upload da midia: ${error.message}`);
+  return `${process.env.MSG_SUPABASE_URL}/storage/v1/object/public/${BUCKET_MIDIA}/${caminho}`;
+}
+
 // A mensagem NAO e gravada aqui: a edge send-message do agente grava no banco
 // dele, e o proximo polling de /api/messages ja mostra. Quem atendeu vai na
 // assinatura "*Nome:*" do texto (lib/whatsapp-agent-formato.ts le de volta).
-export async function enviarTextoWa(inst: InstanciaWa, chatId: string, texto: string, quoted: string | null): Promise<RespostaEnvio> {
-  const url = process.env.WA_MCP_URL;
-  const key = process.env.WA_MCP_KEY;
-  if (!url || !key) return { ok: false, status: 501, error: "envio pelo agente nao configurado (WA_MCP_URL/WA_MCP_KEY)" };
+export async function enviarWa(inst: InstanciaWa, canalId: string, chatId: string, pedido: PedidoEnvio): Promise<RespostaEnvio> {
   try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-mcp-key": key },
-      body: JSON.stringify(corpoEnvio({ chat_id: chatId, texto, instance_id: inst.instance_id, quoted })),
-      cache: "no-store",
-      signal: AbortSignal.timeout(45_000),
-    });
-    const data = await res.json().catch(() => ({}));
-    return lerRespostaEnvio(res.status, data);
+    const mediaUrl = pedido.midia ? await subirMidia(canalId, pedido.midia) : null;
+    const r = await mcpApi(
+      corpoEnvio({
+        chat_id: chatId,
+        texto: pedido.texto,
+        instance_id: inst.instance_id,
+        quoted: pedido.quoted,
+        tipo: pedido.midia?.tipo ?? "text",
+        mediaUrl,
+        fileName: pedido.midia?.fileName ?? null,
+      })
+    );
+    if (!r) return { ok: false, status: 501, error: "envio pelo agente nao configurado (WA_MCP_URL/WA_MCP_KEY)" };
+    return lerRespostaEnvio(r.status, r.data);
   } catch (e: any) {
     console.error("whatsapp-agent envio:", e?.message);
-    return { ok: false, status: 502, error: "a mcp-api do agente nao respondeu" };
+    return { ok: false, status: 502, error: e?.message?.startsWith("upload") ? "nao consegui guardar a midia pra enviar" : "a mcp-api do agente nao respondeu" };
+  }
+}
+
+// Reacao pela tool `react` da mcp-api (message_id = id da mensagem no agente).
+// O eco do webhook grava em message_reactions, e a proxima leitura mostra.
+export async function reagirWa(inst: InstanciaWa, messageId: string, emoji: string) {
+  void inst; // a instancia vem da propria mensagem no agente
+  try {
+    const r = await mcpApi(corpoReacao(messageId, emoji));
+    if (!r) return { ok: false as const, status: 501, error: "envio pelo agente nao configurado (WA_MCP_URL/WA_MCP_KEY)" };
+    return lerRespostaReacao(r.status, r.data);
+  } catch (e: any) {
+    console.error("whatsapp-agent reacao:", e?.message);
+    return { ok: false as const, status: 502, error: "a mcp-api do agente nao respondeu" };
   }
 }

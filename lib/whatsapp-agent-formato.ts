@@ -329,13 +329,25 @@ export const DESTINO_WA_AGENT = /^(\d{10,15}|\d{10,25}@g\.us|\d{10,25}-group|\d{
 // O voice gate do agente NAO e desligado: se a instancia esta em modo block e o
 // texto viola regra hard, a resposta vem `blocked` e a rota devolve 403 com as
 // violacoes — e a trava do dono valendo tambem pro painel, de proposito.
-export function corpoEnvio(p: { chat_id: string; texto: string; instance_id: string; quoted?: string | null }) {
+export type TipoEnvio = "text" | "image" | "audio" | "ptt" | "video" | "document";
+
+export function corpoEnvio(p: {
+  chat_id: string;
+  texto: string;
+  instance_id: string;
+  quoted?: string | null;
+  tipo?: TipoEnvio;
+  mediaUrl?: string | null;
+  fileName?: string | null;
+}) {
   return {
     action: "send",
     params: {
       to: p.chat_id,
       content: p.texto,
-      type: "text",
+      type: p.tipo || "text",
+      ...(p.mediaUrl ? { media_url: p.mediaUrl } : {}),
+      ...(p.fileName ? { file_name: p.fileName } : {}),
       confirmed: true,
       force_send_after_inbound: true,
       humanize: false,
@@ -370,4 +382,50 @@ export function lerRespostaEnvio(status: number, data: any): RespostaEnvio {
   const id = data?.provider_msg_id || data?.message_id;
   if (status < 400 && data?.ok === true && id) return { ok: true, messageId: String(id) };
   return { ok: false, status: 502, error: String(data?.error || `mcp-api respondeu ${status}`) };
+}
+
+// ── midia enviada pelo painel ───────────────────────────────────────────────
+//
+// A mcp-api pede `media_url` PUBLICA (o agente baixa de la e manda pro
+// provedor); o painel recebe base64 do navegador. O arquivo sobe pro bucket
+// publico de midia do proprio painel (`midia-mensagens`, o mesmo que o
+// persistidor usa) e a URL vai no envio. Fica guardado: e a copia do que saiu.
+const EXT_POR_MIME: Record<string, string> = {
+  "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif",
+  "video/mp4": "mp4", "audio/ogg": "ogg", "audio/mpeg": "mp3", "audio/mp4": "m4a", "audio/webm": "webm",
+  "application/pdf": "pdf",
+};
+
+export function caminhoMidia(p: { canal: string; tipo: TipoEnvio; mime: string | null; fileName?: string | null; id: string }): { caminho: string; contentType: string } {
+  const doNome = /\.([a-z0-9]{1,5})$/i.exec(p.fileName || "")?.[1]?.toLowerCase();
+  const ext = EXT_POR_MIME[p.mime || ""] || doNome || (p.tipo === "image" ? "jpg" : p.tipo === "video" ? "mp4" : p.tipo === "audio" || p.tipo === "ptt" ? "ogg" : "bin");
+  const canal = p.canal.replace(/[^a-z0-9_]/gi, "_");
+  return { caminho: `whatsapp-agent/${canal}/${p.id}.${ext}`, contentType: p.mime || "application/octet-stream" };
+}
+
+// ── reacao pela mcp-api ─────────────────────────────────────────────────────
+
+export function corpoReacao(messageId: string, emoji: string) {
+  return { action: "react", params: { message_id: messageId, emoji } };
+}
+
+// so `ok:true` + `reacted:true` e sucesso; string vazia (remover) tambem volta reacted
+export function lerRespostaReacao(status: number, data: any): { ok: true } | { ok: false; status: number; error: string } {
+  if (status === 401 || status === 403) return { ok: false, status: 502, error: "a mcp-api do agente recusou a credencial (WA_MCP_KEY)" };
+  if (status === 404) return { ok: false, status: 404, error: "mensagem nao encontrada no agente" };
+  if (status < 400 && data?.ok === true && data?.reacted === true) return { ok: true };
+  return { ok: false, status: 502, error: String(data?.error || `mcp-api respondeu ${status}`) };
+}
+
+// O que a bolha mostra: a reacao mais recente na mensagem (do contato ou nossa),
+// como o painel ja faz na coluna `reacao` das tabelas dele.
+export function reacoesPorMensagem(rows: { target_msg_id: string; emoji: string | null; reacted_at?: string | null }[]): Map<string, string> {
+  const out = new Map<string, { emoji: string; em: string }>();
+  for (const r of rows) {
+    if (!r?.target_msg_id || !r.emoji) continue;
+    const em = r.reacted_at || "";
+    const atual = out.get(r.target_msg_id);
+    if (!atual || em > atual.em) out.set(r.target_msg_id, { emoji: r.emoji, em });
+  }
+  return new Map([...out].map(([k, v]) => [k, v.emoji]));
 }

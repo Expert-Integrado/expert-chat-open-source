@@ -101,16 +101,13 @@ bloco("suportaReacao: Z-API e Evolution sim; Gupshup e externa nao, com motivo",
   assert.equal(suportaReacao("evolution"), true);
   assert.equal(suportaReacao("gupshup"), false);
   assert.equal(suportaReacao("instagram-agent"), false);
-  assert.equal(suportaReacao("whatsapp-agent"), false);
+  assert.equal(suportaReacao("whatsapp-agent"), true, "reage pela tool react da mcp-api do agente");
   assert.equal(suportaReacao(""), false);
   assert.equal(suportaReacao(undefined), false);
   assert.match(motivoSemReacao("gupshup"), /API oficial/);
   assert.match(motivoSemReacao("instagram-agent"), /somente leitura/);
   assert.ok(motivoSemReacao("qualquer").length > 10);
   assert.notEqual(motivoSemReacao("gupshup"), motivoSemReacao("instagram-agent"));
-  // whatsapp-agent NAO e "somente leitura" (ele envia): o motivo e outro — falta o ramo
-  assert.match(motivoSemReacao("whatsapp-agent"), /WhatsApp Agent/);
-  assert.notEqual(motivoSemReacao("whatsapp-agent"), motivoSemReacao("instagram-agent"));
 });
 
 bloco("corpo Z-API: {phone, messageId, reaction} — o contrato do whatsapp-agent em producao", () => {

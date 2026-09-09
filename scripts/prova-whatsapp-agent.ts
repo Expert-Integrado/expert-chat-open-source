@@ -31,6 +31,10 @@ import {
   rotuloTipo,
   tipoPainel,
   urlDaMidia,
+  caminhoMidia,
+  corpoReacao,
+  lerRespostaReacao,
+  reacoesPorMensagem,
   MAPA_VAZIO,
   canonico,
   fundirGemeos,
@@ -229,6 +233,37 @@ bloco("corpo do send: confirmado, sem teatro de digitacao, forcando o gate de in
   assert.ok(!("confirmed_voice" in c.params), "o voice gate do agente NAO e bypassado pelo painel");
 });
 
+bloco("midia: corpo do send leva type+media_url+file_name; caminho no bucket sai do mime ou do nome", () => {
+  const c = corpoEnvio({ chat_id: "x", texto: "*Maria:* legenda", instance_id: "i", tipo: "image", mediaUrl: "https://p/a.jpg", fileName: null });
+  assert.equal(c.params.type, "image");
+  assert.equal(c.params.media_url, "https://p/a.jpg");
+  assert.ok(!("file_name" in c.params));
+  const d = corpoEnvio({ chat_id: "x", texto: "", instance_id: "i", tipo: "document", mediaUrl: "https://p/f.pdf", fileName: "contrato.pdf" });
+  assert.equal(d.params.file_name, "contrato.pdf");
+  assert.deepEqual(caminhoMidia({ canal: "agente", tipo: "image", mime: "image/png", id: "u1" }), { caminho: "whatsapp-agent/agente/u1.png", contentType: "image/png" });
+  assert.equal(caminhoMidia({ canal: "a b", tipo: "document", mime: null, fileName: "x.PDF", id: "u2" }).caminho, "whatsapp-agent/a_b/u2.pdf", "sem mime, a extensao vem do nome; canal saneado");
+  assert.equal(caminhoMidia({ canal: "a", tipo: "ptt", mime: null, id: "u3" }).caminho, "whatsapp-agent/a/u3.ogg");
+  assert.equal(caminhoMidia({ canal: "a", tipo: "document", mime: null, id: "u4" }).contentType, "application/octet-stream");
+});
+
+bloco("reacao: corpo do react e leitura da resposta; a bolha mostra a reacao mais recente", () => {
+  assert.deepEqual(corpoReacao("uuid-1", "👍"), { action: "react", params: { message_id: "uuid-1", emoji: "👍" } });
+  assert.deepEqual(corpoReacao("uuid-1", "").params.emoji, "", "vazio remove — viaja como string vazia");
+  assert.deepEqual(lerRespostaReacao(200, { ok: true, reacted: true, emoji: "👍" }), { ok: true });
+  assert.equal(lerRespostaReacao(200, { ok: true, ambiguous: true }).ok, false, "ambiguo nao e sucesso");
+  assert.equal((lerRespostaReacao(404, { error: "x" }) as any).status, 404);
+  assert.equal((lerRespostaReacao(401, {}) as any).status, 502);
+  const m = reacoesPorMensagem([
+    { target_msg_id: "A", emoji: "❤️", reacted_at: "2026-09-09T10:00:00Z" },
+    { target_msg_id: "A", emoji: "👍", reacted_at: "2026-09-09T11:00:00Z" },
+    { target_msg_id: "B", emoji: null, reacted_at: "t" },
+    { target_msg_id: "", emoji: "x" },
+  ]);
+  assert.equal(m.get("A"), "👍", "a mais recente vence");
+  assert.equal(m.has("B"), false, "reacao removida nao aparece");
+  assert.equal(m.size, 1);
+});
+
 bloco("resposta da mcp-api: so ok+id e sucesso; bloqueio de voz vira 403 com as violacoes", () => {
   assert.deepEqual(lerRespostaEnvio(200, { ok: true, provider_msg_id: "3EB1", message_id: "uuid" }), { ok: true, messageId: "3EB1" });
   assert.deepEqual(lerRespostaEnvio(200, { ok: true, message_id: "uuid" }), { ok: true, messageId: "uuid" });
@@ -282,11 +317,12 @@ bloco("/api/send: o ramo do agente vem DEPOIS dos tres gates de permissao e ANTE
   const src = readFileSync("app/api/send/route.ts", "utf8");
   const iPerm = src.indexOf('permitido(perfil, "enviar")');
   const iVer = src.indexOf("podeVerConversa(String(chat_id)");
-  const iExt = src.indexOf("if (ext?.enviarTexto) {");
+  const iExt = src.indexOf("if (ext?.enviar) {");
   const iDb = src.indexOf("const db = msgDb();");
   assert.ok(iPerm > 0 && iVer > iPerm && iExt > iVer && iDb > iExt, "ordem: permissao -> escopo -> envio externo -> banco do painel");
   assert.match(src, /ext \? DESTINO_WA_AGENT : DESTINO_VALIDO/, "destino validado no dialeto do agente");
-  assert.match(src, /ext && \(ehMidia \|\| ehInterativa \|\| template\)/, "midia/interativa/template pelo agente: 400 declarado");
+  assert.match(src, /ext && \(ehInterativa \|\| template\)/, "interativa/template pelo agente: 400 declarado; midia passa");
+  assert.match(src, /midia: \{ tipo: tipo as TipoMidia, dataUri: media as string/, "midia do composer vai no pedido");
 });
 
 bloco("lib/whatsapp-agent.ts: nunca le o token da instancia; midia assinada por bucket", () => {
@@ -296,6 +332,8 @@ bloco("lib/whatsapp-agent.ts: nunca le o token da instancia; midia assinada por 
   assert.match(src, /from\("lid_mapping"\)\.select\("lid,phone"\)/, "o mapa @lid vem da tabela do agente");
   assert.match(src, /\.in\("chat_id", ids\)/, "as mensagens de UMA conversa saem dos chats gemeos juntos");
   assert.match(src, /"x-mcp-key": key/, "auth da mcp-api pelo header");
+  assert.match(src, /from\(BUCKET_MIDIA\)\.upload\(caminho, bytes/, "midia do painel sobe pro bucket publico do painel antes do envio");
+  assert.match(src, /from\("message_reactions"\)/, "a reacao vem do banco do agente");
   assert.match(src, /WA_SUPABASE_URL \|\| process\.env\.MSG_SUPABASE_URL/, "um Supabase so: cai no projeto do painel");
 });
 

@@ -48,9 +48,18 @@ export type MensagemExterna = {
   quoted_msg_id: string | null;
   is_deleted: boolean;
   editada_em: string | null;
-  reacao: null;
+  reacao: string | null;
   encaminhada: boolean;
 };
+
+// o que o painel manda: texto (com assinatura) e, opcionalmente, UMA midia em data URI
+export type PedidoEnvio = {
+  texto: string;
+  quoted: string | null;
+  midia?: { tipo: "image" | "audio" | "ptt" | "video" | "document"; dataUri: string; fileName?: string | null };
+};
+
+export type MensagemRef = { id: string; chat_id: string; provider_msg_id: string | null; direcao: string; is_deleted: boolean };
 
 export type UltimaExterna = {
   chat_id: string;
@@ -86,7 +95,10 @@ export type FonteLigada = {
   buscarMensagens(q: string): Promise<HitExterno[]>;
   // null = fonte somente leitura (Instagram). O gate de "pode enviar" continua
   // sendo `envioDisponivel` (lib/canais.ts); isto e a execucao.
-  enviarTexto: ((chatId: string, texto: string, quoted: string | null) => Promise<RespostaEnvio>) | null;
+  enviar: ((chatId: string, pedido: PedidoEnvio) => Promise<RespostaEnvio>) | null;
+  // reagir a uma mensagem pelo id dela na fonte; null = fonte sem o gesto
+  mensagemPorId: (id: string) => Promise<MensagemRef | null>;
+  reagir: ((id: string, emoji: string) => Promise<{ ok: true } | { ok: false; status: number; error: string }>) | null;
 };
 
 // A env da fonte existe nesta instalacao? (decide se o canal entra no seletor)
@@ -111,7 +123,9 @@ export async function fonteLigada(c: CanalDef): Promise<FonteLigada | null> {
       conversasPorIds: (ids) => ig.conversasIgPorIds(conta, ids),
       listarMensagens: (chatId) => ig.listarMensagensIg(conta, chatId),
       buscarMensagens: (q) => ig.buscarMensagensIg(conta, q),
-      enviarTexto: null,
+      enviar: null,
+      mensagemPorId: async () => null,
+      reagir: null,
     };
   }
   if (c.fonte === "whatsapp-agent") {
@@ -124,7 +138,9 @@ export async function fonteLigada(c: CanalDef): Promise<FonteLigada | null> {
       conversasPorIds: (ids) => wa.conversasWaPorIds(inst, ids),
       listarMensagens: (chatId) => wa.listarMensagensWa(inst, chatId),
       buscarMensagens: (q) => wa.buscarMensagensWa(inst, q),
-      enviarTexto: wa.waEnvioDisponivel() ? (chatId, texto, quoted) => wa.enviarTextoWa(inst, chatId, texto, quoted) : null,
+      enviar: wa.waEnvioDisponivel() ? (chatId, pedido) => wa.enviarWa(inst, c.id, chatId, pedido) : null,
+      mensagemPorId: (id) => wa.mensagemWaPorId(inst, id),
+      reagir: wa.waEnvioDisponivel() ? (id, emoji) => wa.reagirWa(inst, id, emoji) : null,
     };
   }
   return null;

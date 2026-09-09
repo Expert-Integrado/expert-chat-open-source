@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
   // e a mensagem sai pela mcp-api do agente (lib/whatsapp-agent.ts). O adaptador
   // resolvido aqui e o que decide o formato de destino e o ramo la embaixo.
   const ext = fonteExterna(def) ? await fonteLigada(def) : null;
-  if (fonteExterna(def) && !ext?.enviarTexto) {
+  if (fonteExterna(def) && !ext?.enviar) {
     return NextResponse.json({ error: "fonte externa do canal nao esta ligada nesta instalacao" }, { status: 501 });
   }
 
@@ -154,12 +154,11 @@ export async function POST(req: NextRequest) {
   if (fonte === "gupshup" && ehMidia) {
     return NextResponse.json({ error: "no numero da API oficial da pra mandar so TEXTO por enquanto" }, { status: 400 });
   }
-  // ponytail: pelo agente v1 e SO texto — a mcp-api pede `media_url` publica e o
-  // painel manda base64; subir a midia num bucket e mandar a URL e o proximo passo.
   // Interativa e template nao existem no agente. 400 declarado, nunca silencio.
-  if (ext && (ehMidia || ehInterativa || template)) {
+  // (Midia vai: o adaptador sobe o arquivo pro bucket do painel e manda a URL.)
+  if (ext && (ehInterativa || template)) {
     return NextResponse.json(
-      { error: "pelo WhatsApp Agent, por enquanto, so TEXTO (midia, pergunta com opcoes e template ficam pra proxima versao)" },
+      { error: "pelo WhatsApp Agent nao ha pergunta com opcoes nem template — texto e midia, sim" },
       { status: 400 }
     );
   }
@@ -198,13 +197,16 @@ export async function POST(req: NextRequest) {
   // conferidos la), e o proximo polling de /api/messages ja mostra a bolha.
   // A assinatura "*Nome:*" e o unico rastro de quem atendeu — o adaptador le
   // ela de volta (lib/whatsapp-agent-formato.ts, nomeDaAssinatura).
-  if (ext?.enviarTexto) {
+  if (ext?.enviar) {
     const contaExt = await contaDoUsuario(user.id);
-    const r = await ext.enviarTexto(
-      String(chat_id),
-      textoComAssinatura(text, { ...contaExt, nome: user.nome }),
-      quoted_msg_id ? String(quoted_msg_id) : null
-    );
+    const r = await ext.enviar(String(chat_id), {
+      // na midia a assinatura vai na legenda, como no canal principal
+      texto: textoComAssinatura(text, { ...contaExt, nome: user.nome }),
+      quoted: quoted_msg_id ? String(quoted_msg_id) : null,
+      ...(ehMidia
+        ? { midia: { tipo: tipo as TipoMidia, dataUri: media as string, fileName: typeof file_name === "string" ? file_name : null } }
+        : {}),
+    });
     if (!r.ok) {
       return NextResponse.json({ error: r.error, ...(r.detalhe ? { detalhe: r.detalhe } : {}) }, { status: r.status });
     }

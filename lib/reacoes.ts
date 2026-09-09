@@ -21,7 +21,8 @@
 // lista `reaction` entre os tipos de mensagem (doc oficial lida em 03/09/2026:
 // text, image, file, audio, video, sticker, list, quick_reply, location,
 // contact) — nesse numero a rota responde 403 com o motivo em vez de fingir.
-// Canal de fonte externa (instagram-agent) e somente leitura no painel.
+// Canal de fonte externa instagram-agent e somente leitura no painel; o
+// whatsapp-agent reage pela tool `react` da mcp-api dele (lib/whatsapp-agent.ts).
 
 export const REACOES_RAPIDAS = ["👍", "❤️", "😂", "😮", "😢", "🙏"] as const;
 
@@ -30,14 +31,13 @@ export const REACOES_RAPIDAS = ["👍", "❤️", "😂", "😮", "😢", "🙏"
 export const TETO_REACAO = 16;
 
 export function suportaReacao(fonte: unknown): boolean {
-  return fonte === "zapi" || fonte === "evolution";
+  return fonte === "zapi" || fonte === "evolution" || fonte === "whatsapp-agent";
 }
 
 const MOTIVO_SEM_REACAO: Record<string, string> = {
   gupshup:
     "no numero da API oficial ainda nao da pra reagir (o envio v1 da Gupshup nao tem esse tipo de mensagem)",
   "instagram-agent": "este canal e somente leitura no painel",
-  "whatsapp-agent": "reagir pelo WhatsApp Agent ainda nao esta cabeado neste painel (a tool `react` do agente existe; falta o ramo aqui)",
 };
 
 export function motivoSemReacao(fonte: unknown): string {

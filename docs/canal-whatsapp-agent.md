@@ -72,15 +72,14 @@ Faça um build novo (variável só entra em build novo) e o canal aparece no sel
 
 | Funciona | Ainda não (v1) |
 |---|---|
-| Lista de conversas, grupos inclusive, com foto e "não lida" | Enviar **mídia** pelo painel (a mcp-api pede URL pública; o painel manda base64) |
-| Mensagens com texto, mídia (URL assinada de 1h do Storage do agent), áudio já transcrito pelo agent | Reagir a mensagem (a tool `react` do agent existe; falta o ramo aqui) |
-| Enviar **texto**, com resposta citada | Etiqueta, ficha editável, nota interna, concluir conversa: 403 "somente leitura", porque a linha da conversa não existe no banco do painel |
-| Busca por conteúdo (índice do agent) | Pesquisa de satisfação, SLA e relatório de atendimento ficam parciais (o agent não gera esses eventos) |
-| Responsável por pessoa e departamento, visibilidade, escopo por papel, funis | Iniciar conversa com número novo pelo painel |
+| Lista de conversas, grupos inclusive, com foto e "não lida"; o chat `@lid` e o do telefone da mesma pessoa aparecem como uma conversa só | Etiqueta, ficha editável, nota interna, concluir conversa: 403 "somente leitura", porque a linha da conversa não existe no banco do painel |
+| Mensagens com texto, mídia (URL assinada de 1h do Storage do agent), áudio já transcrito pelo agent, reações | Pesquisa de satisfação, SLA e relatório de atendimento ficam parciais (o agent não gera esses eventos) |
+| Enviar **texto e mídia** (foto, vídeo, áudio, documento), com resposta citada; a mídia fica guardada no bucket `midia-mensagens` do painel e vai como URL | Iniciar conversa com número novo pelo painel |
+| Reagir a mensagem (tool `react` da mcp-api; a reação aparece no próximo carregamento, vinda do banco do agent) | Pergunta com opções e template (não existem no agent) |
+| Busca por conteúdo (índice do agent); responsável por pessoa e departamento, visibilidade, escopo por papel, funis | |
 
-Cada item da direita entra depois sem mexer no que já está: mídia é um ramo a mais no envio;
-etiqueta/nota/status pedem uma tabela de estado no painel chaveada por canal e `chat_id`
-(migration aditiva).
+Cada item da direita entra depois sem mexer no que já está: etiqueta/nota/status pedem uma
+tabela de estado no painel chaveada por canal e `chat_id` (migration aditiva).
 
 ## Por que assim
 
