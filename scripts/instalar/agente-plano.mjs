@@ -241,3 +241,27 @@ export const SQL_BUCKETS =
   "insert into storage.buckets (id, name, public) values " +
   BUCKETS_DO_PAINEL.map((b) => `('${b}', '${b}', true)`).join(", ") +
   " on conflict (id) do update set public = true;";
+
+// ── quais migrations rodar ──────────────────────────────────────────────────
+//
+// A sonda por leitura (plano.mjs) foi feita pra CONFERENCIA incremental, e tem
+// dois buracos quando vira decisao de aplicar (sessao vizinha, 09/09/2026,
+// reproduzido sem banco): migration que so adiciona coluna a tabela ausente sai
+// "sem objeto probavel", e migration que so cria funcao sai "nao verificavel"
+// com `bloqueia:false` — as duas ficavam FORA do que era aplicado, e a saida
+// dizia "pronto" com 7 de 25 faltando.
+//
+// Regra: instalacao NOVA (schema ausente) = as 25 em ordem, sem sonda. Instalacao
+// que ja tem o schema = tudo que a sonda nao PROVOU como aplicada e pendente —
+// reaplicar migration idempotente (if not exists / or replace) custa nada;
+// nascer sem 7 custa a instalacao.
+export function migrationsARodar(avaliadas, novaInstalacao) {
+  const ordem = [...avaliadas].sort((a, b) => a.numero - b.numero);
+  if (novaInstalacao) return ordem;
+  return ordem.filter((a) => a.veredito?.estado !== "aplicada");
+}
+
+/** O alerta duro do fim: a conta bate? (o que sobrou ausente/PARCIAL depois de aplicar) */
+export function faltandoAposAplicar(avaliadasDepois) {
+  return avaliadasDepois.filter((a) => a.veredito?.estado === "ausente" || a.veredito?.estado === "PARCIAL").map((a) => a.arquivo);
+}

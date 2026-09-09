@@ -27,11 +27,11 @@ import readline from "node:readline";
 import assert from "node:assert/strict";
 import {
   BUCKETS_DO_PAINEL, CHAVES_DO_AGENTE, ENV_DO_AGENTE, MARCA_DO_AGENTE, SQL_BUCKETS, SQL_EXTENSOES, candidatosDePasta, canalDoAgente, chaveDoAuth,
-  chaveDoBanco, chaveDoClaudeJson, ehJwt, emailValido, escolherAnon, escolherChaveMcp, escolherSecret, faltamNoAgente, literal,
-  parseEnv, planoEnvLocal, refValido,
+  chaveDoBanco, chaveDoClaudeJson, ehJwt, emailValido, escolherAnon, escolherChaveMcp, escolherSecret, faltamNoAgente,
+  faltandoAposAplicar, literal, migrationsARodar, parseEnv, planoEnvLocal, refValido,
   renderEnv, sqlIdPorEmail, sqlPerfilAdmin, sqlTickBearer, uuidValido,
 } from "./agente-plano.mjs";
-import { filaDeMigrations, lerNomeDeMigration, objetosDaMigration, vereditoDaMigration } from "./plano.mjs";
+import { lerNomeDeMigration, objetosDaMigration, vereditoDaMigration } from "./plano.mjs";
 
 const RAIZ = path.resolve(new URL("../..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"));
 const MGMT = "https://api.supabase.com";
@@ -159,22 +159,33 @@ async function main() {
   if (!chaveMcp) { log("**Nao achei a MCP_API_KEY do agente** (a que vai no header x-mcp-key). Passe `--mcp-key <valor>`, ou rode com `--valendo` num terminal pra eu perguntar."); if (valendo) { process.exitCode = 1; return; } }
   else log("3. Chave da mcp-api: ok.");
 
-  // 4. migrations do painel (schema mensageria) — sonda por leitura, aplica so o que falta
+  // 4. migrations do painel (schema mensageria). Instalacao NOVA = as 25 em
+  //    ordem, sem sonda; instalacao existente = tudo que a sonda nao provou como
+  //    aplicada (ver migrationsARodar em agente-plano.mjs pra saber por que).
   const migrations = lerMigrations();
-  const sonda = await sondar(url, serviceRole, migrations);
-  const fila = filaDeMigrations(migrations.map((m) => ({ ...m, veredito: vereditoDaMigration(m.objetos, sonda) })));
-  const pendentes = fila.filter((f) => f.bloqueia);
-  const primeiraVez = pendentes.some((f) => f.numero === 1);
-  log(`4. Migrations do painel: ${migrations.length} no repo, ${pendentes.length} a aplicar${primeiraVez ? " (instalacao nova: schema mensageria sera criado)" : ""}.`);
+  const cabecalho = { apikey: serviceRole, Authorization: `Bearer ${serviceRole}`, "Accept-Profile": "mensageria" };
+  const temSchema = (await http(`${url}/rest/v1/config?select=chave&limit=0`, { headers: cabecalho })).status === 200;
+  const avaliar = async () => {
+    const sonda = await sondar(url, serviceRole, migrations);
+    return migrations.map((m) => ({ ...m, veredito: vereditoDaMigration(m.objetos, sonda) }));
+  };
+  const pendentes = migrationsARodar(temSchema ? await avaliar() : migrations, !temSchema);
+  log(`4. Migrations do painel: ${migrations.length} no repo, ${pendentes.length} a aplicar${temSchema ? "" : " (instalacao nova: schema mensageria sera criado, todas em ordem)"}.`);
   if (valendo && pendentes.length) {
     await sql(api, ref, SQL_EXTENSOES);
-    // sem buraco: da primeira pendente em diante, em ordem (a fila ja vem assim)
-    for (const p of pendentes) {
-      const m = migrations.find((x) => x.arquivo === p.arquivo);
+    let aplicadas = 0;
+    for (const m of pendentes) {
       process.stdout.write(`   aplicando ${m.arquivo} ... `);
       await sql(api, ref, m.sql);
+      aplicadas++;
       log("ok");
     }
+    // O ALERTA DURO: depois de aplicar, a sonda nao pode achar nada ausente ou
+    // pela metade. Saida de sucesso igual a saida com migration faltando e o
+    // pior estado possivel (o painel degrada com aviso discreto).
+    const faltando = faltandoAposAplicar(await avaliar());
+    if (faltando.length) { log(`**PAROU: ${aplicadas} aplicada(s), mas a conferencia ainda acha faltando: ${faltando.join(", ")}.** Nao siga; olhe o SQL Editor.`); process.exitCode = 1; return; }
+    log(`   ${aplicadas} de ${migrations.length} aplicada(s); conferencia depois: nada ausente nem pela metade.`);
   }
 
   // 4b. buckets publicos do painel (midia enviada, fotos) — migration nenhuma cria
@@ -292,6 +303,23 @@ function prova() {
     assert.equal(canalDoAgente({ conta: "profissional" }).conta, "profissional");
     assert.ok(!("WA_MCP_KEY" in planoEnvLocal({ ref: "abcdefghijklmnopqrst", anon: "A", serviceRole: "S", chaveMcp: "", canal: canalDoAgente(), gerar: () => "g" }).final), "chave vazia nao vira linha vazia");
   });
+  t("migrations: instalacao nova roda as 25; incremental roda tudo que nao esta PROVADO aplicado (o bug dos 7)", () => {
+    // reproducao da sessao vizinha: banco vazio, sonda diz `false` pra toda tabela
+    const arqs = fs.readdirSync(path.join(RAIZ, "supabase", "migrations")).map(lerNomeDeMigration).filter(Boolean);
+    const objetos = Object.fromEntries(arqs.map((a) => [a.arquivo, objetosDaMigration(fs.readFileSync(path.join(RAIZ, "supabase", "migrations", a.arquivo), "utf8"))]));
+    const sonda = { tabelas: {}, colunas: {} };
+    for (const a of arqs) for (const t of objetos[a.arquivo].tabelas) sonda.tabelas[t] = false;
+    const aval = arqs.map((a) => ({ ...a, veredito: vereditoDaMigration(objetos[a.arquivo], sonda) }));
+    assert.equal(migrationsARodar(aval, true).length, arqs.length, "instalacao nova: TODAS, sem sonda");
+    assert.equal(migrationsARodar(aval, false).length, arqs.length, "incremental com banco vazio: TODAS tambem (nada esta provado aplicado)");
+    assert.deepEqual(migrationsARodar(aval, true).map((a) => a.numero), arqs.map((a) => a.numero).sort((x, y) => x - y), "em ordem numerica");
+    // incremental de verdade: so o que a sonda provou fica de fora
+    const meio = aval.map((a, i) => ({ ...a, veredito: i < 5 ? { estado: "aplicada" } : a.veredito }));
+    assert.equal(migrationsARodar(meio, false).length, arqs.length - 5);
+    assert.ok(migrationsARodar(meio, false).some((a) => a.veredito.estado === "sem objeto probavel" || a.veredito.estado === "nao verificavel"), "so-coluna e so-funcao ENTRAM (era o que sumia)");
+    assert.deepEqual(faltandoAposAplicar([{ arquivo: "a", veredito: { estado: "aplicada" } }, { arquivo: "b", veredito: { estado: "PARCIAL" } }, { arquivo: "c", veredito: { estado: "nao verificavel" } }]), ["b"], "so-funcao nao e prova de falta; PARCIAL e");
+  });
+
   t("SQL: aspas escapadas, e-mail/uuid validados antes de virar query", () => {
     assert.equal(literal("o'x\ny"), "'o''x y'");
     assert.match(sqlTickBearer("s'1"), /'s''1'/);
