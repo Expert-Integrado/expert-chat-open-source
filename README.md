@@ -405,6 +405,17 @@ on conflict (chave) do update set valor = excluded.valor, updated_at = now();
 Se você ligou automação ou disparo, volte ao passo 6: cada um tem uma rotina própria, e sem ela
 o fluxo nunca executa e a campanha nunca sai da fila.
 
+## Esqueci a senha
+
+Dois caminhos, e o segundo existe porque o primeiro depende de e-mail:
+
+1. **Link por e-mail.** Na tela de login, "Esqueci minha senha" manda um link pelo Supabase Auth.
+   Precisa de **SMTP configurado** no projeto (Authentication → SMTP Settings); o remetente
+   padrão do Supabase é só para teste e limita a poucos e-mails por hora.
+2. **Senha temporária pelo super admin.** Em Configurações → Acesso → **Redefinir senha**, o
+   administrador escolhe a pessoa e o painel gera uma senha temporária, mostrada uma vez. A
+   pessoa entra com ela e troca em Meu perfil. Não depende de e-mail.
+
 ## Permissões que não se ganham sozinhas
 
 Um papel que você criou **antes** de uma permissão nova existir não a recebe automaticamente —

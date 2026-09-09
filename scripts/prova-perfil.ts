@@ -12,8 +12,7 @@ import {
   PREFERENCIAS_PADRAO, SENHA_MINIMA,
   caminhoFotoUsuario, corpoGrandeDemais, mesclarPreferencias, motivoRecusaDeGravacao,
   sanitizarAssinaturaNome, sanitizarPreferencias, tipoImagem, urlPublicaFoto, validarFoto,
-  validarTrocaDeSenha,
-} from "../lib/perfil-conta.ts";
+  validarTrocaDeSenha, gerarSenhaTemporaria, SENHA_TEMPORARIA_TAMANHO } from "../lib/perfil-conta.ts";
 
 // ==================================================== 1) PREFERENCIAS DE AVISO
 
@@ -186,3 +185,15 @@ const WEBP = new Uint8Array([...Buffer.from("RIFF"), 0, 0, 0, 0, ...Buffer.from(
 }
 
 console.log("prova-perfil: OK");
+
+// ── senha temporaria (rota /api/users/senha, 09/09/2026) ─────────────────────
+{
+  const bytes = Uint8Array.from({ length: 16 }, (_, i) => i * 17);
+  const s1 = gerarSenhaTemporaria(bytes);
+  assert.equal(s1.length, SENHA_TEMPORARIA_TAMANHO, "12 caracteres");
+  assert.equal(gerarSenhaTemporaria(bytes), s1, "pura: mesmos bytes, mesma senha");
+  assert.notEqual(gerarSenhaTemporaria(Uint8Array.from({ length: 16 }, (_, i) => i * 31)), s1);
+  assert.match(s1, /^[A-HJ-NP-Za-km-z2-9]+$/, "sem 0/O, 1/l/I: a senha vai ser ditada");
+  assert.ok(SENHA_TEMPORARIA_TAMANHO >= 8, "cobre o minimo da troca em Meu perfil");
+  console.log("ok - senha temporaria: tamanho, pureza e alfabeto sem ambiguidade");
+}

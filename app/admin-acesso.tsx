@@ -61,7 +61,7 @@ import type { RestricaoUsuario } from "@/lib/visibilidade";
 // A TELA NAO PASSOU POR AJUSTE VISUAL DO ERIC — feita so com os componentes e
 // classes que o painel ja usa.
 
-type Aba = "janela" | "dispositivos" | "visibilidade" | "chaves";
+type Aba = "janela" | "dispositivos" | "visibilidade" | "chaves" | "senha";
 
 export type UsuarioAcesso = {
   id: string;
@@ -1066,6 +1066,62 @@ function TelaChaves({ authedFetch, usuarios, canais }: { authedFetch: Fetch; usu
 }
 
 // ═══════════════════════════════════════════════════════ A VISAO
+// ═══════════════════════════════════════════════════════ 5) REDEFINIR SENHA
+//
+// O caminho SEM e-mail pra quem esqueceu a senha: o super admin gera uma senha
+// temporaria (a rota escolhe, ninguem digita), mostra UMA vez, e a pessoa troca
+// em Meu perfil. O link por e-mail ("Esqueci minha senha", na tela de login)
+// continua existindo — mas depende de SMTP no projeto de auth.
+function TelaSenha({ authedFetch, usuarios, meuId, alvoInicial }: { authedFetch: Fetch; usuarios: UsuarioAcesso[]; meuId: string; alvoInicial: string }) {
+  const [alvo, setAlvo] = useState(alvoInicial);
+  const [gerando, setGerando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const [resultado, setResultado] = useState<{ email: string; senha: string } | null>(null);
+  const pessoa = usuarios.find((u) => u.id === alvo);
+
+  async function gerar() {
+    if (!alvo) return;
+    if (!window.confirm(`Gerar uma senha temporaria para ${pessoa?.nome ?? "esta pessoa"}? A senha atual dela deixa de valer na hora.`)) return;
+    setGerando(true);
+    setErro(null);
+    setResultado(null);
+    try {
+      const r = await authedFetch("/api/users/senha", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: alvo }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) setErro(j.error || `erro ${r.status}`);
+      else setResultado({ email: j.email, senha: j.senha_temporaria });
+    } catch {
+      setErro("sem resposta do painel");
+    } finally {
+      setGerando(false);
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <Aviso tom="sky" texto="A senha temporaria aparece UMA vez, so aqui. Passe pra pessoa por outro canal e peca pra ela trocar em Meu perfil (a troca exige a senha atual, que sera esta)." />
+      <div className="flex flex-wrap items-end gap-2">
+        <SeletorPessoa usuarios={usuarios} valor={alvo} aoTrocar={setAlvo} />
+        <button className={BOTAO} disabled={!alvo || gerando} onClick={gerar}>
+          {gerando ? "Gerando..." : "Gerar senha temporaria"}
+        </button>
+      </div>
+      {alvo === meuId && <Aviso texto="E a sua propria conta: prefira trocar em Meu perfil, que pede a senha atual." />}
+      {erro && <Aviso tom="red" texto={erro} />}
+      {resultado && (
+        <div className="rounded-lg border bg-white p-3 text-xs">
+          <p className="mb-1 text-muted-foreground">Senha temporaria de {resultado.email}:</p>
+          <p className="select-all font-mono text-base">{resultado.senha}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AdminAcesso({
   authedFetch,
   usuarios,
@@ -1094,7 +1150,7 @@ export default function AdminAcesso({
   const abas: [Aba, string][] = [
     ...((podeGerenciarUsuarios ? [["janela", "Janela de acesso"], ["dispositivos", "Dispositivos"]] : []) as [Aba, string][]),
     ...((podeGerenciarVisibilidade ? [["visibilidade", "Visibilidade"]] : []) as [Aba, string][]),
-    ...((ehSuperAdmin ? [["chaves", "Chaves de API"]] : []) as [Aba, string][]),
+    ...((ehSuperAdmin ? [["chaves", "Chaves de API"], ["senha", "Redefinir senha"]] : []) as [Aba, string][]),
   ];
   const [aba, setAba] = useState<Aba>(abas[0]?.[0] ?? "janela");
   const alvoInicial = usuarioInicial || "";
@@ -1146,6 +1202,9 @@ export default function AdminAcesso({
               )}
               {aba === "visibilidade" && podeGerenciarVisibilidade && (
                 <TelaVisibilidade authedFetch={authedFetch} usuarios={usuarios} meuId={meuId} alvoInicial={alvoInicial} />
+              )}
+              {aba === "senha" && ehSuperAdmin && (
+                <TelaSenha authedFetch={authedFetch} usuarios={usuarios} meuId={meuId} alvoInicial={alvoInicial} />
               )}
               {aba === "chaves" && ehSuperAdmin && (
                 <TelaChaves authedFetch={authedFetch} usuarios={usuarios} canais={canais} />
