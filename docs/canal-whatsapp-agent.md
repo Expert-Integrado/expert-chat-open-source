@@ -141,6 +141,8 @@ rodou: repita o comando acima.
   violações. Ajuste o texto ou o voice guide da instância.
 - **502 "a mcp-api do agente recusou a credencial"**: `WA_MCP_KEY` diferente da `MCP_API_KEY`
   configurada nos secrets da edge function do agent.
+- **O time cai numa tela de login da Vercel, não do painel**: é a Deployment Protection, ligada
+  por padrão em projeto novo. Settings → Deployment Protection → desligar "Require Log In".
 - **400 "etiqueta fora do catálogo" na primeira etiquetagem**: não é do canal do agent. O
   catálogo de etiquetas nasce vazio; o super admin cria as etiquetas em Configurações →
   Etiquetas (catálogo único) antes de alguém etiquetar.

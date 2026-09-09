@@ -76,7 +76,10 @@ a linha 5 (`CANAIS_EXTRA`). Dois números no agent? `--conta <alias>` escolhe qu
 1. `vercel` na pasta: faz login (no navegador do usuário) e o primeiro deploy, e linka a pasta.
 2. Envs do `.env.local` no projeto: `node scripts/instalar/agente.mjs --valendo --vercel`
    (usa o login da CLI; não pede token). Depois `vercel --prod` para o build pegar as envs.
-3. Rotinas do painel (agendadas, SLA, alertas), apontando para a URL publicada:
+3. **Desligue a proteção de acesso da Vercel** (Settings → Deployment Protection → desligar
+   "Require Log In"), senão só quem tem conta no time abre o painel e o time inteiro cai na tela
+   de login da Vercel. Avise o usuário: é um passo no navegador, ninguém faz por ele.
+4. Rotinas do painel (agendadas, SLA, alertas), apontando para a URL publicada:
    `node scripts/instalar/agente.mjs --valendo --base https://SEU-PAINEL.vercel.app`
    Ele desagenda e agenda cada job no pg_cron; o bearer é lido de dentro do banco.
 

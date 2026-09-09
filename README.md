@@ -237,6 +237,20 @@ npx vercel deploy --prod
 momento do build — sempre que você criar ou mudar uma, faça um deploy novo. Isso responde a
 maioria dos "configurei e não mudou nada".
 
+**Na Vercel, desligue a proteção de acesso — senão nenhum atendente entra.** Projeto novo nasce
+com **Deployment Protection** ligada, e ela exige conta na Vercel para abrir qualquer endereço
+`*.vercel.app`. O painel sobe, responde normalmente para você, e todo mundo do time cai numa tela
+de login da Vercel. O sintoma engana: parece problema de autenticação do painel, mas é um
+redirect para `vercel.com/login` antes de a sua aplicação ser chamada.
+
+Em **Settings → Deployment Protection**, desligue **Require Log In** (as opções do menu —
+"Standard Protection" e "All Deployments" — não resolvem: a primeira só libera domínio
+personalizado de produção, e instalação nova não tem nenhum).
+
+A configuração melhor, se você já tem domínio: aponte um subdomínio seu para o projeto e
+mantenha a proteção ligada. Aí os previews continuam fechados e só a produção fica aberta —
+com o login do painel, que é quem deve barrar.
+
 Para rodar na sua máquina antes de publicar: `npm run dev`, e abra http://localhost:3000.
 
 ### 5. A senha das rotinas, dentro do banco
