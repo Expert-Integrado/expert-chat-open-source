@@ -1,0 +1,167 @@
+// As DECISOES PURAS do instalador em cima do WhatsApp Agent (`agente.mjs`).
+// Sem fs, sem rede, sem env: tudo aqui roda na prova (`agente.mjs --prova`).
+//
+// O que ele decide: onde procurar a pasta do agente, o que ler do `.env` dele,
+// de onde vem a chave da mcp-api, qual chave anon serve, o que escrever no
+// `.env.local` sem sobrescrever o que ja existe, e o SQL (escapado) do bearer
+// e do primeiro administrador.
+
+import path from "node:path";
+
+// ── .env ────────────────────────────────────────────────────────────────────
+
+/** KEY=VALUE por linha; comentario e vazio ignorados; aspas nas pontas caem. */
+export function parseEnv(texto) {
+  const out = {};
+  for (const bruta of String(texto || "").split(/\r?\n/)) {
+    const l = bruta.trim();
+    if (!l || l.startsWith("#")) continue;
+    const i = l.indexOf("=");
+    if (i <= 0) continue;
+    const k = l.slice(0, i).trim().replace(/^export\s+/, "");
+    let v = l.slice(i + 1).trim();
+    if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) v = v.slice(1, -1);
+    out[k] = v;
+  }
+  return out;
+}
+
+/** `.env.local` de volta pra texto, uma chave por linha, valor cru (JSON e hex nao tem quebra de linha). */
+export function renderEnv(obj) {
+  return Object.entries(obj).map(([k, v]) => `${k}=${String(v).replace(/[\r\n]/g, " ")}`).join("\n") + "\n";
+}
+
+// ── onde esta o agente ──────────────────────────────────────────────────────
+
+/** Pastas candidatas, na ordem em que vale procurar. Quem confere se existe e o IO. */
+export function candidatosDePasta(raizPainel, home, explicita) {
+  const c = [];
+  if (explicita) c.push(path.resolve(explicita));
+  c.push(path.resolve(raizPainel, "..", "whatsapp-agent"));
+  c.push(path.resolve(home, "whatsapp-agent"));
+  return [...new Set(c)];
+}
+
+/** Marca de pasta do agente: a edge da mcp-api + o .env do setup. */
+export const MARCAS_DO_AGENTE = ["supabase/functions/mcp-api/index.ts", ".env"];
+
+/** O que o `.env` do agente precisa ter pra este instalador andar sozinho. */
+export const CHAVES_DO_AGENTE = ["SUPABASE_ACCESS_TOKEN", "SUPABASE_PROJECT_REF", "SUPABASE_SERVICE_ROLE_KEY"];
+
+export function faltamNoAgente(envAgente) {
+  return CHAVES_DO_AGENTE.filter((k) => !String(envAgente?.[k] || "").trim());
+}
+
+/** ref valido = o subdominio do projeto (20 letras minusculas). */
+export function refValido(ref) {
+  return /^[a-z]{20}$/.test(String(ref || ""));
+}
+
+// ── a chave da mcp-api ──────────────────────────────────────────────────────
+//
+// O setup do agente gera a MCP_API_KEY e sobe pro cofre das functions — de la
+// nao se le de volta. Ela sobrevive em algum destes lugares, nesta ordem:
+//   1. `.env.local` do painel (re-execucao)
+//   2. `.env` do agente (quando o setup gravou)
+//   3. ambiente do shell (o `.mcp.json` do agente le `${MCP_API_KEY}` de la)
+//   4. header `x-mcp-key` do servidor `whatsapp-agent` no ~/.claude.json
+// Placeholder `${...}` nao e valor. Nada achado = o IO pergunta.
+export function escolherChaveMcp(fontes) {
+  for (const v of fontes) {
+    const s = String(v || "").trim();
+    if (s && !/^\$\{.*\}$/.test(s)) return s;
+  }
+  return null;
+}
+
+/** O header do servidor no ~/.claude.json (raiz ou por projeto). */
+export function chaveDoClaudeJson(json) {
+  const servidores = [json?.mcpServers, ...Object.values(json?.projects ?? {}).map((p) => p?.mcpServers)];
+  for (const s of servidores) {
+    const h = s?.["whatsapp-agent"]?.headers;
+    const v = h?.["x-mcp-key"] ?? h?.["X-MCP-Key"];
+    if (v) return v;
+  }
+  return null;
+}
+
+// ── a chave anon (login do painel) ──────────────────────────────────────────
+//
+// O `.env` do agente guarda a service_role e a secret nova — nenhuma serve no
+// navegador. A anon vem da Management API (`/v1/projects/{ref}/api-keys`).
+// Preferimos a `anon` legada (JWT): e o formato que o supabase-js desta versao
+// usa no login. A `publishable` nova fica como reserva, com aviso.
+export function escolherAnon(lista) {
+  const arr = Array.isArray(lista) ? lista : [];
+  const legada = arr.find((k) => k?.name === "anon" && k?.api_key);
+  if (legada) return { chave: legada.api_key, aviso: null };
+  const nova = arr.find((k) => k?.type === "publishable" && k?.api_key);
+  if (nova) return { chave: nova.api_key, aviso: "projeto sem chave anon legada: usando a publishable — se o login falhar, gere a anon em Settings → API Keys → Legacy" };
+  return { chave: null, aviso: "nenhuma chave anon/publishable no projeto" };
+}
+
+// ── o .env.local ────────────────────────────────────────────────────────────
+
+/** O canal do agente em CANAIS_EXTRA (sem `conta` = instancia default do agente). */
+export function canalDoAgente({ id = "agente", rotulo = "Meu WhatsApp", conta } = {}) {
+  return { id, tipo: "whatsapp", dono: "pessoal", rotulo, fonte: "whatsapp-agent", ...(conta ? { conta } : {}), ativo: true };
+}
+
+/**
+ * O que escrever. REGRA: chave que ja existe no `.env.local` NUNCA e
+ * sobrescrita (re-executar o instalador nao pode trocar um segredo que o
+ * painel ja usa). `gerar()` e injetado pra prova nao depender de aleatorio.
+ */
+export function planoEnvLocal({ ref, anon, serviceRole, chaveMcp, canal, atual = {}, gerar }) {
+  const url = `https://${ref}.supabase.co`;
+  const desejadas = {
+    MSG_SUPABASE_URL: url,
+    MSG_SUPABASE_SERVICE_KEY: serviceRole,
+    NEXT_PUBLIC_AUTH_URL: url,
+    NEXT_PUBLIC_AUTH_ANON_KEY: anon,
+    WEBHOOK_KEY: gerar(),
+    CHATGURU_SYNC_SECRET: gerar(),
+    WA_MCP_URL: `${url}/functions/v1/mcp-api`,
+    WA_MCP_KEY: chaveMcp,
+    CANAIS_EXTRA: JSON.stringify([canal]),
+  };
+  const novas = {};
+  const mantidas = [];
+  for (const [k, v] of Object.entries(desejadas)) {
+    if (String(atual[k] || "").trim()) mantidas.push(k);
+    else if (v) novas[k] = v;
+  }
+  return { final: { ...atual, ...novas }, novas: Object.keys(novas), mantidas };
+}
+
+// ── SQL ─────────────────────────────────────────────────────────────────────
+
+/** literal SQL seguro: aspas simples dobradas, sem quebra de linha */
+export function literal(s) {
+  return `'${String(s).replace(/'/g, "''").replace(/[\r\n]/g, " ")}'`;
+}
+
+export function sqlTickBearer(segredo) {
+  return `insert into mensageria.config (chave, valor) values ('tick_bearer', to_jsonb(${literal(segredo)}::text)) on conflict (chave) do update set valor = excluded.valor, updated_at = now();`;
+}
+
+export function emailValido(e) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(e || ""));
+}
+
+export function uuidValido(u) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(u || ""));
+}
+
+export function sqlIdPorEmail(email) {
+  if (!emailValido(email)) throw new Error("e-mail invalido");
+  return `select id from auth.users where lower(email) = lower(${literal(email)}) limit 1;`;
+}
+
+export function sqlPerfilAdmin(uuid, nome) {
+  if (!uuidValido(uuid)) throw new Error("uuid invalido");
+  return `insert into mensageria.perfis (user_id, nome, papel, escopo_visao) values (${literal(uuid)}::uuid, ${literal(nome || "Admin")}, 'super_admin', 'todas') on conflict (user_id) do update set papel = 'super_admin', escopo_visao = 'todas';`;
+}
+
+/** Extensoes que as rotinas do painel precisam (idempotente; o agente ja liga as duas na 0001 dele). */
+export const SQL_EXTENSOES = "create extension if not exists pg_cron; create extension if not exists pg_net;";

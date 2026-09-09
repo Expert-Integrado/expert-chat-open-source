@@ -10,6 +10,12 @@ Criado por **Eric Luciano** na **Mentoria Automações Inteligentes** (Expert In
 **Uma instalação por empresa.** Isto não é multi-tenant e não pretende ser: cada empresa tem
 o seu banco, o seu deploy e as suas variáveis. Ninguém hospeda o seu atendimento além de você.
 
+## Já tem o WhatsApp Agent?
+
+O painel roda em cima dele, no mesmo Supabase, sem reinstalar nada: abra a pasta no Claude
+Code e diga `/setup`, ou rode `node scripts/instalar/agente.mjs`. Detalhes em
+`docs/canal-whatsapp-agent.md`.
+
 ## Como obter
 
 ```bash

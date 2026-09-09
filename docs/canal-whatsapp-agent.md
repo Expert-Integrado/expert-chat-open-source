@@ -15,7 +15,24 @@
 - O atendente que respondeu vai na assinatura `*Nome:*` da mensagem, e o painel lê isso de
   volta para mostrar quem atendeu.
 
-## Instalação
+## Instalação automática (recomendada)
+
+Abra a pasta do repo no Claude Code e diga **`/setup`**. A skill conduz tudo: acha o `.env` do
+seu agent, aplica as migrations do painel no mesmo projeto Supabase, escreve o `.env.local`
+com o canal já declarado e cria o primeiro administrador. Sem Claude Code, o mesmo script
+direto:
+
+```bash
+npm install
+node scripts/instalar/agente.mjs                                             # confere, não muda nada
+node scripts/instalar/agente.mjs --valendo --admin-email voce@empresa.com    # aplica; pede a senha no terminal
+npm run dev
+```
+
+Se o script não achar a pasta do agent, `--agente <caminho>`. Se não achar a `MCP_API_KEY`,
+ele pergunta no terminal (ou `--mcp-key <valor>`). Dois números no agent: `--conta <alias>`.
+
+## Instalação manual (se preferir ver cada passo)
 
 ### 1. Um Supabase só (recomendado)
 
@@ -64,6 +81,24 @@ Faça um build novo (variável só entra em build novo) e o canal aparece no sel
 Cada item da direita entra depois sem mexer no que já está: mídia é um ramo a mais no envio;
 etiqueta/nota/status pedem uma tabela de estado no painel chaveada por canal e `chat_id`
 (migration aditiva).
+
+## Por que assim
+
+Decisões de 09/09/2026 (Eric, Asafe, Victor), registradas para quem revisar:
+
+- **Adaptador, não repasse de webhook nem substituição do agent.** Repasse no mesmo número
+  vira ponto único de falha; trocar o agent pelo painel perde grupos, voice guide, transcrição
+  e as tools do MCP. O adaptador lê o banco do agent e deixa o agent como único receptor.
+- **Envio pela mcp-api, não pela Z-API direto.** A mcp-api aplica voice gate, trava de
+  instância e log. Z-API direto seria mais simples e furaria as três.
+- **Um Supabase só.** O painel vive no schema `mensageria`, o agent em `public`. Sem colisão,
+  e o aluno não cria projeto novo.
+- **Fonte externa = sem linha de conversa no painel.** Por isso etiqueta, nota, status e ficha
+  ficam 403 nesta versão: precisam de uma tabela de estado chaveada por canal e `chat_id`
+  (migration aditiva), que entra na v2.
+- **Ponto aberto para revisão:** o agent guarda parte do tráfego de um contato num chat `@lid`
+  e parte no chat do telefone (`lid_mapping` casa os dois). A lista ainda não funde os dois;
+  a fusão está desenhada e entra na próxima rodada.
 
 ## Quando algo não aparece
 
