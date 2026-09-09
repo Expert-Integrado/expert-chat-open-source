@@ -37,6 +37,7 @@ const MOTIVO_SEM_REACAO: Record<string, string> = {
   gupshup:
     "no numero da API oficial ainda nao da pra reagir (o envio v1 da Gupshup nao tem esse tipo de mensagem)",
   "instagram-agent": "este canal e somente leitura no painel",
+  "whatsapp-agent": "reagir pelo WhatsApp Agent ainda nao esta cabeado neste painel (a tool `react` do agente existe; falta o ramo aqui)",
 };
 
 export function motivoSemReacao(fonte: unknown): string {

@@ -54,4 +54,4 @@ node scripts/instalar/index.mjs      # conferidor da instalação (não altera n
 
 `README.md` (instalação passo a passo), `docs/instalacao.md`, `docs/variaveis.md`,
 `docs/permissoes.md`, `docs/disparo.md`, `docs/webhooks-saida.md`, `docs/exportacao.md`,
-`docs/embed-como-instalar.md`, `extensao-chrome/README.md`.
+`docs/embed-como-instalar.md`, `docs/canal-whatsapp-agent.md`, `extensao-chrome/README.md`.

@@ -218,7 +218,7 @@ const LISTA = {
 // 2.5 fonte sem interativa cabeada: fallback com motivo que diz o que FALTA —
 //     nunca "o provedor nao suporta", que seria afirmar coisa nao medida
 {
-  for (const fonte of ["evolution", "instagram-agent", "fonte-nova-qualquer"]) {
+  for (const fonte of ["evolution", "instagram-agent", "whatsapp-agent", "fonte-nova-qualquer"]) {
     const p = planoDeEnvio(fonte, "lista");
     eq(p.modo, "texto_numerado", `${fonte} cai no fallback`);
     ok(p.motivo && /cabead/.test(p.motivo), `${fonte}: o motivo diz que falta cabeamento, nao que o provedor recusa`);

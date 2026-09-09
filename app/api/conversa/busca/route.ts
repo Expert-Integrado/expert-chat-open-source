@@ -3,7 +3,7 @@ import { getUser } from "@/lib/auth-server";
 import { getPerfil, podeVerConversa } from "@/lib/perfil";
 import { canalDe } from "@/lib/canal";
 import { canalPorId, fonteExterna } from "@/lib/canais";
-import { igDisponivel, resolverContaIg, buscarMensagensIg } from "@/lib/instagram-agent";
+import { externaDisponivel, fonteLigada } from "@/lib/fonte-externa";
 import { restricaoEfetiva } from "@/lib/embed";
 import { buscarNaConversa } from "@/lib/tela-conversa-db";
 import { MIN_TERMO_BUSCA, MAX_RESULTADOS_BUSCA, trechoDoTermo, casaTermo } from "@/lib/tela-conversa";
@@ -61,11 +61,11 @@ export async function GET(req: NextRequest) {
   // conversa gigante ve so os hits que couberam no teto do agente. Declarado
   // aqui em vez de recusado: buscar em 60 mensagens e melhor que nao buscar.
   if (fonteExterna(def)) {
-    if (!igDisponivel()) {
+    if (!externaDisponivel(def)) {
       return NextResponse.json({ achados: [], total: 0, aviso: "canal externo indisponivel nesta instalacao" });
     }
-    const conta = await resolverContaIg(def);
-    const hits = conta ? await buscarMensagensIg(conta, q) : [];
+    const ext = await fonteLigada(def);
+    const hits = ext ? await ext.buscarMensagens(q) : [];
     const daConversa = hits.filter((h: any) => String(h.chat_id) === chatId);
     return NextResponse.json(
       {

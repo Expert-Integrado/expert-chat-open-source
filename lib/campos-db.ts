@@ -11,7 +11,7 @@
 // `tipos_disponiveis: false` — some o TIPO, nao o campo. Re-testa a cada 60s: no
 // minuto seguinte a migration rodar, passa a valer sem redeploy.
 import { msgDb } from "@/lib/mensageria";
-import { listarCanais } from "@/lib/canais";
+import { fonteExterna, listarCanais } from "@/lib/canais";
 import {
   campoDaLinha,
   medirImpacto,
@@ -151,7 +151,7 @@ export async function impactoDoCampo(nome: string): Promise<ImpactoCampo> {
  * RECUSAR. Por isso nao ha `?? [algum canal]` em lugar nenhum aqui.
  */
 function canaisComFicha() {
-  return listarCanais().filter((c) => c.fonte !== "instagram-agent");
+  return listarCanais().filter((c) => !fonteExterna(c));
 }
 
 /** os ids dos canais varridos — o `canais` do efeito de arquivamento */

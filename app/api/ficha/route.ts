@@ -4,7 +4,7 @@ import { getUser } from "@/lib/auth-server";
 import { getPerfil, podeVerConversa } from "@/lib/perfil";
 import { canalDe, canalDeBody, tabelas } from "@/lib/canal";
 import { canalPorId, fonteExterna, somenteLeitura } from "@/lib/canais";
-import { igDisponivel, resolverContaIg, conversasIgPorIds } from "@/lib/instagram-agent";
+import { fonteLigada } from "@/lib/fonte-externa";
 import { restricaoEfetiva } from "@/lib/embed";
 // FRENTE X (31/08/2026), toque 1 de 2 nesta rota — o catalogo TIPADO e a DECISAO
 // de escrita passaram a vir de um lugar so. Ver `app/api/campos/valores/route.ts`:
@@ -48,17 +48,18 @@ export async function GET(req: NextRequest) {
   const db = msgDb();
   const def = canalPorId(canal)!;
   if (fonteExterna(def)) {
-    // fonte externa (instagram-agent): ficha minima (nome, status). Campos, etiquetas
-    // e notas moram na linha da conversa do painel, que este canal ainda nao tem.
-    const conta = igDisponivel() ? await resolverContaIg(def) : null;
-    const [c] = conta ? await conversasIgPorIds(conta, [chatId]) : [];
+    // fonte externa (instagram-agent / whatsapp-agent): ficha minima (nome, status).
+    // Campos, etiquetas e notas moram na linha da conversa do painel, que este
+    // canal ainda nao tem.
+    const ext = await fonteLigada(def);
+    const [c] = ext ? await ext.conversasPorIds([chatId]) : [];
     const catExt = await lerCatalogo();
     const ativosExt = catExt.campos.filter((x) => x.ativo);
     return NextResponse.json(
       {
         chat_id: chatId,
         nome: c?.nome ?? null,
-        is_group: false,
+        is_group: c?.is_group ?? false,
         status: "aberto",
         responsavel_nome: null,
         etiquetas: [],

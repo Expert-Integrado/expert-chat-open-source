@@ -198,6 +198,7 @@ produção: no painel da sua hospedagem.
 | `CANAL_CENTRAL_IDENTIDADE` | seu número, só pra exibição na tela | fica em branco |
 | `MSG_STORAGE_BUCKET` | bucket do Supabase Storage onde a mídia é guardada | `midia-mensagens` |
 | `CANAIS_EXTRA` | JSON com canais além do principal (segundo número etc.) | só o canal principal |
+| `WA_MCP_URL`, `WA_MCP_KEY` | o painel como tela do seu **WhatsApp Agent**: lê o banco dele e envia pela `mcp-api` (ver `docs/canal-whatsapp-agent.md`) | canal do agent só leitura |
 | `TELEGRAM_BOT_TOKEN` | manda os alertas de canal caído e de SLA pro seu Telegram | alerta desligado, com aviso na tela |
 | `VIGIA_ALERTAS` | destino dos alertas, se você não configurar pela tela | usa o que está na tela |
 | `PIPEDRIVE_API_TOKEN` | permite usar filtro do Pipedrive como público de disparo | a opção some da tela de disparo |
@@ -442,6 +443,7 @@ decisão do produto, e é o melhor lugar pra entender uma parte do código antes
 | `docs/disparo.md` | campanhas em massa |
 | `docs/webhooks-saida.md` | como avisar outro sistema quando algo acontece aqui |
 | `docs/exportacao.md` | tirar os dados de dentro |
+| `docs/canal-whatsapp-agent.md` | usar o painel em cima do WhatsApp Agent que você já tem, sem reinstalar |
 
 ## Licença
 

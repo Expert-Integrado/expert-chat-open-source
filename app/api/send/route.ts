@@ -20,6 +20,8 @@ import { getUser, identidadePorApiKey } from "@/lib/auth-server";
 import { getPerfil, podeVerConversa, permitido, contaDoUsuario } from "@/lib/perfil";
 import { responderZeraNaoLidas, textoComAssinatura } from "@/lib/conversa-automatica";
 import { canalDeBody, tabelas } from "@/lib/canal";
+import { fonteLigada } from "@/lib/fonte-externa";
+import { DESTINO_WA_AGENT } from "@/lib/whatsapp-agent-formato";
 import { credsGupshup, gsEnviarTemplate, gsSendText, gsSendInterativo, janela24h } from "@/lib/gupshup";
 import { restricaoEfetiva } from "@/lib/embed";
 import { efeitosDeResposta } from "@/lib/fluxo/executar";
@@ -85,15 +87,26 @@ export async function POST(req: NextRequest) {
 
   // canal registrado (lib/canais.ts) mas sem envio cabeado NAO pode cair no
   // caminho do central — sairia mensagem pelo numero errado
-  const { envioDisponivel, canalPorId } = await import("@/lib/canais");
+  const { envioDisponivel, canalPorId, fonteExterna } = await import("@/lib/canais");
   if (!envioDisponivel(canal)) {
     return NextResponse.json({ error: "envio nao configurado pra este canal" }, { status: 403 });
   }
   // P1 (30/08/2026): o envio sai pelo NUMERO DO CANAL da conversa — a fonte do
-  // canal decide o provedor (Z-API ou Gupshup), nunca um numero fixo.
-  const fonte = canalPorId(canal)!.fonte;
+  // canal decide o provedor (Z-API, Gupshup, Evolution ou a mcp-api do
+  // WhatsApp Agent), nunca um numero fixo.
+  const def = canalPorId(canal)!;
+  const fonte = def.fonte;
+  // FONTE EXTERNA QUE ENVIA (whatsapp-agent): a conversa nao tem linha no painel
+  // e a mensagem sai pela mcp-api do agente (lib/whatsapp-agent.ts). O adaptador
+  // resolvido aqui e o que decide o formato de destino e o ramo la embaixo.
+  const ext = fonteExterna(def) ? await fonteLigada(def) : null;
+  if (fonteExterna(def) && !ext?.enviarTexto) {
+    return NextResponse.json({ error: "fonte externa do canal nao esta ligada nesta instalacao" }, { status: 501 });
+  }
 
-  if (!chat_id || !DESTINO_VALIDO.test(String(chat_id))) {
+  // o agente conhece grupo `@g.us` e `@lid`, que o painel nao guarda; cada
+  // caminho valida o dialeto que o provedor dele aceita
+  if (!chat_id || !(ext ? DESTINO_WA_AGENT : DESTINO_VALIDO).test(String(chat_id))) {
     return NextResponse.json({ error: "destino invalido" }, { status: 400 });
   }
   const ehMidia = TIPOS_MIDIA.includes(tipo as TipoMidia);
@@ -141,6 +154,15 @@ export async function POST(req: NextRequest) {
   if (fonte === "gupshup" && ehMidia) {
     return NextResponse.json({ error: "no numero da API oficial da pra mandar so TEXTO por enquanto" }, { status: 400 });
   }
+  // ponytail: pelo agente v1 e SO texto — a mcp-api pede `media_url` publica e o
+  // painel manda base64; subir a midia num bucket e mandar a URL e o proximo passo.
+  // Interativa e template nao existem no agente. 400 declarado, nunca silencio.
+  if (ext && (ehMidia || ehInterativa || template)) {
+    return NextResponse.json(
+      { error: "pelo WhatsApp Agent, por enquanto, so TEXTO (midia, pergunta com opcoes e template ficam pra proxima versao)" },
+      { status: 400 }
+    );
+  }
 
   const creds = fonte === "zapi" ? credsZapi(canal) : null;
   const credsGs = fonte === "gupshup" ? await credsGupshup(canal) : null;
@@ -153,6 +175,40 @@ export async function POST(req: NextRequest) {
   }
   if (fonte === "evolution" && !credsEvo) {
     return NextResponse.json({ error: "credenciais Evolution do canal nao configuradas" }, { status: 501 });
+  }
+
+  // PERMISSAO ANTES DE EXISTENCIA (fail-closed): os tres gates nao dependem da
+  // conversa, e a fonte externa nao tem linha pra consultar — entao eles vem
+  // primeiro pros dois caminhos. Quem nao tem a permissao de enviar nao escreve
+  // em conversa nenhuma; quem nao ve a conversa tambem nao escreve nela.
+  if (!permitido(perfil, "enviar")) {
+    return NextResponse.json({ error: "sem permissao pra enviar mensagem" }, { status: 403 });
+  }
+  if (!(await podeVerConversa(String(chat_id), user, perfil, canal))) {
+    return NextResponse.json({ error: "conversa fora do seu escopo" }, { status: 403 });
+  }
+  if (emb && !emb.permite(String(chat_id))) {
+    return NextResponse.json({ error: "fora do contexto" }, { status: 403 });
+  }
+
+  // ————————————————————————— ENVIO PELA MCP-API DO WHATSAPP AGENT
+  //
+  // Nada e gravado no painel: a edge send-message do agente grava no banco DELE
+  // (com a existencia da conversa, o voice gate e a trava de instancia
+  // conferidos la), e o proximo polling de /api/messages ja mostra a bolha.
+  // A assinatura "*Nome:*" e o unico rastro de quem atendeu — o adaptador le
+  // ela de volta (lib/whatsapp-agent-formato.ts, nomeDaAssinatura).
+  if (ext?.enviarTexto) {
+    const contaExt = await contaDoUsuario(user.id);
+    const r = await ext.enviarTexto(
+      String(chat_id),
+      textoComAssinatura(text, { ...contaExt, nome: user.nome }),
+      quoted_msg_id ? String(quoted_msg_id) : null
+    );
+    if (!r.ok) {
+      return NextResponse.json({ error: r.error, ...(r.detalhe ? { detalhe: r.detalhe } : {}) }, { status: r.status });
+    }
+    return NextResponse.json({ ok: true, messageId: r.messageId });
   }
 
   const db = msgDb();
@@ -170,17 +226,6 @@ export async function POST(req: NextRequest) {
       { error: "conversa nao encontrada — inicie o contato pelo WhatsApp antes" },
       { status: 404 }
     );
-  }
-  // quem nao tem a permissao de enviar nao escreve em conversa nenhuma
-  if (!permitido(perfil, "enviar")) {
-    return NextResponse.json({ error: "sem permissao pra enviar mensagem" }, { status: 403 });
-  }
-  // quem nao ve a conversa tambem nao escreve nela
-  if (!(await podeVerConversa(String(chat_id), user, perfil, canal))) {
-    return NextResponse.json({ error: "conversa fora do seu escopo" }, { status: 403 });
-  }
-  if (emb && !emb.permite(String(chat_id))) {
-    return NextResponse.json({ error: "fora do contexto" }, { status: 403 });
   }
 
   // ————————————————————————— API oficial: janela de 24h e TEMPLATE
