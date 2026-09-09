@@ -259,7 +259,7 @@ async function main() {
 
   log("");
   if (!valendo) log("Nada foi alterado. Rode de novo com `--valendo` pra aplicar.");
-  else log("Pronto. Agora: `npm run dev` → http://localhost:3000 → login → canal \"Meu WhatsApp\" no seletor. Deploy e rotinas (cron): `node scripts/instalar/index.mjs --envs-vercel --valendo` e o SQL que o conferidor imprime.");
+  else log("Pronto. Agora: `npm run dev` → abra a porta que ele imprimir (3000, ou a proxima livre) → login → canal \"Meu WhatsApp\" no seletor. Deploy e rotinas (cron): `node scripts/instalar/index.mjs --envs-vercel --valendo` e o SQL que o conferidor imprime.");
 }
 
 function prova() {
