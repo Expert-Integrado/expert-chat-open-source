@@ -79,7 +79,8 @@ Faça um build novo (variável só entra em build novo) e o canal aparece no sel
 
 | Funciona | Ainda não (v1) |
 |---|---|
-| Lista de conversas, grupos inclusive, com foto e "não lida"; o chat `@lid` e o do telefone da mesma pessoa aparecem como uma conversa só | SLA e relatórios de mensagens por dia e por atendente: leem as tabelas de mensagens do painel, que neste canal só têm as anotações. A satisfação (CSAT) entra normalmente |
+| Lista de conversas, grupos inclusive, com foto e "não lida"; o chat `@lid` e o do telefone da mesma pessoa aparecem como uma conversa só | SLA por conversa (`/api/relatorios/sla`) só enxerga conversas que já têm linha de estado no painel (as que alguém atendeu, etiquetou ou concluiu) |
+| Relatórios: mensagens por dia e por atendente, tempo até a primeira resposta e novos atendimentos são lidos do banco do agent e somados no painel (até 20 mil mensagens por período; acima disso vem marcado `parcial`); status e satisfação vêm das linhas do painel | |
 | Mensagens com texto, mídia (URL assinada de 1h do Storage do agent), áudio já transcrito pelo agent, reações, anotações internas | Pergunta com opções e template (não existem no agent) |
 | Enviar **texto e mídia** (foto, vídeo, áudio, documento), com resposta citada; a mídia fica guardada no bucket `midia-mensagens` do painel e vai como URL. Responder assume a conversa e muda o status, como no canal principal | |
 | Reagir a mensagem (tool `react` da mcp-api; a reação aparece no próximo carregamento, vinda do banco do agent) | |
@@ -88,8 +89,10 @@ Faça um build novo (variável só entra em build novo) e o canal aparece no sel
 | Iniciar conversa com número novo pelo painel (a mcp-api cria o chat no agent) | |
 | Busca por conteúdo (índice do agent); responsável por pessoa e departamento, visibilidade, escopo por papel, funis | |
 
-Os relatórios de mensagens exigiriam espelhar as mensagens do agent na tabela do painel ou
-reescrever as funções SQL para lerem `public.messages`. Decisão para a revisão, não para esta versão.
+Os números de mensagem dos relatórios são somados em TypeScript a partir do banco do agent
+(`lib/relatorios-agente.ts`), em vez de espelhar mensagens (duas fontes de verdade) ou reescrever
+as funções SQL sobre o schema do agent. Se um número passar de 20 mil mensagens no período, o
+relatório vem com `parcial: true` e o próximo passo é somar no banco.
 
 ## Por que assim
 

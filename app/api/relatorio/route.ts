@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { canalDe } from "@/lib/canal";
+import { canalPorId, fonteExterna } from "@/lib/canais";
+import { sobreporAtendimento } from "@/lib/relatorios-agente";
 import { msgDb } from "@/lib/mensageria";
 import { fusoDaConfig, getConfig } from "@/lib/config";
 import { acessoRelatorios } from "@/lib/relatorios-acesso";
@@ -40,6 +42,12 @@ export async function GET(req: NextRequest) {
 
   // corte de BALDE (dias ignorados) sobre a serie que o banco devolveu; o
   // desconto de HORAS no tempo de atendimento vive em /api/relatorios/serie
+  // canal do agente: a funcao SQL nao enxerga as mensagens (moram no banco do
+  // agente) — os numeros de mensagem sao lidos de la e sobrepostos aqui
+  const defRel = canalPorId(canal);
+  if (defRel && fonteExterna(defRel) && defRel.fonte === "whatsapp-agent") {
+    data = await sobreporAtendimento(defRel, data, dias, fusoAplicado || fuso);
+  }
   const porDia = filtrarDias(((data as any)?.por_dia ?? []) as { dia: string }[], pular);
   const corpo = {
     canal,

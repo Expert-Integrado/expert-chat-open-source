@@ -103,6 +103,14 @@ export type FonteLigada = {
   reagir: ((id: string, emoji: string) => Promise<{ ok: true } | { ok: false; status: number; error: string }>) | null;
 };
 
+// A instancia do agente que um canal mostra — pra quem precisa ler o banco do
+// agente por outro caminho que nao o adaptador (relatorios). Passa por aqui pra
+// nenhum lib importar lib/whatsapp-agent.ts direto (a prova varre).
+export async function instanciaDoAgente(c: CanalDef): Promise<{ instance_id: string } | null> {
+  if (c.fonte !== "whatsapp-agent" || !wa.waDisponivel()) return null;
+  return wa.resolverInstanciaWa(c);
+}
+
 // A env da fonte existe nesta instalacao? (decide se o canal entra no seletor)
 export function externaDisponivel(c: CanalDef): boolean {
   if (c.fonte === "instagram-agent") return ig.igDisponivel();

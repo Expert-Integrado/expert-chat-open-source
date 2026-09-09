@@ -42,6 +42,7 @@ import {
   mapaLid,
   type InstanciaWa,
 } from "../lib/whatsapp-agent-formato.ts";
+import { agregarMensagens, contarPorDia, diaNoFuso } from "../lib/relatorios-agente-formato.ts";
 
 let blocos = 0;
 let falhas = 0;
@@ -289,6 +290,28 @@ bloco("resposta da mcp-api: so ok+id e sucesso; bloqueio de voz vira 403 com as 
   const erro = lerRespostaEnvio(500, { error: "Falha ao criar chat" });
   assert.equal(erro.ok, false);
   if (!erro.ok) assert.equal(erro.error, "Falha ao criar chat");
+});
+
+// ── 4b. relatorios lidos do banco do agente ─────────────────────────────────
+bloco("relatorios: por dia no fuso, por atendente pela assinatura, primeira resposta e novos atendimentos", () => {
+  assert.deepEqual(diaNoFuso("2026-09-09T02:30:00Z", "America/Sao_Paulo"), { dia: "2026-09-08", dow: 2 }, "23:30 de terca em Sao Paulo");
+  assert.equal(diaNoFuso("2026-09-09T02:30:00Z", "Fuso/Invalido").dia, "2026-09-09", "fuso invalido cai em UTC, como no SQL");
+  const rows = [
+    { chat_id: "A", from_me: false, message_ts: "2026-09-09T12:00:00Z" },
+    { chat_id: "A", from_me: true, message_ts: "2026-09-09T12:10:00Z", sent_by_agent_name: AGENT_NAME, content: "*Maria:* oi" },
+    { chat_id: "A", from_me: true, message_ts: "2026-09-09T12:20:00Z", sent_by_agent_name: AGENT_NAME, content: "*Maria:* mais" },
+    { chat_id: "B", from_me: true, message_ts: "2026-09-09T13:00:00Z", sent_by_agent_name: null, content: "do celular" },
+    { chat_id: "B", from_me: false, message_ts: "2026-09-09T13:05:00Z" },
+    { chat_id: "C", from_me: false, message_ts: "2026-09-10T09:00:00Z" },
+    { chat_id: "C", from_me: true, message_ts: "2026-09-10T09:30:00Z", sent_by_agent_name: "claude-code-local", content: "agente" },
+  ];
+  const a = agregarMensagens(rows, "UTC", enviadoPorNome);
+  assert.deepEqual(a.por_dia.map((d) => [d.dia, d.recebidas, d.enviadas]), [["2026-09-09", 2, 3], ["2026-09-10", 1, 1]]);
+  assert.deepEqual(a.por_atendente, [{ nome: "Maria", enviadas: 2 }, { nome: "(sem registro)", enviadas: 1 }, { nome: "claude-code-local", enviadas: 1 }]);
+  assert.equal(a.primeira_resposta_media_s, (600 + 1800) / 2, "A: 10 min, C: 30 min; B nao conta (a saida veio ANTES da entrada)");
+  assert.deepEqual(a.novos_atendimentos.map((d) => [d.dia, d.n]), [["2026-09-09", 1], ["2026-09-10", 1]]);
+  assert.equal(agregarMensagens([], "UTC", enviadoPorNome).primeira_resposta_media_s, null, "sem par entrada/saida: null, nunca 0");
+  assert.deepEqual(contarPorDia(["2026-09-09T01:00:00Z", "2026-09-09T02:00:00Z", ""], "UTC"), [{ dia: "2026-09-09", dow: 3, n: 2 }]);
 });
 
 // ── 5. varredura load-bearing ────────────────────────────────────────────────
