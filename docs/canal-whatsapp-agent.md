@@ -32,6 +32,10 @@ npm run dev
 Se o script não achar a pasta do agent, `--agente <caminho>`. Se não achar a `MCP_API_KEY`,
 ele pergunta no terminal (ou `--mcp-key <valor>`). Dois números no agent: `--conta <alias>`.
 
+Para publicar: `vercel` na pasta (login e primeiro deploy), depois
+`node scripts/instalar/agente.mjs --valendo --vercel` sobe as envs e
+`--valendo --base https://SEU-PAINEL` agenda as rotinas do pg_cron. Nenhum token é digitado.
+
 ## Instalação manual (se preferir ver cada passo)
 
 ### 1. Um Supabase só (recomendado)

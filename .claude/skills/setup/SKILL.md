@@ -71,14 +71,17 @@ Depois: responder uma conversa pelo painel e conferir no celular que a mensagem 
 Se a lista vier vazia: `node scripts/instalar/agente.mjs` de novo e olhe a linha 3 (chave) e
 a linha 5 (`CANAIS_EXTRA`). Dois números no agent? `--conta <alias>` escolhe qual.
 
-### 4. Opcional: deploy e rotinas
+### 4. Publicar (opcional, mas é o que deixa o painel no ar)
 
-- Vercel: `vercel` na pasta, depois `node scripts/instalar/index.mjs --envs-vercel --valendo`
-  sobe as envs do `.env.local` para o projeto.
-- Rotinas (agendadas, SLA, alertas): `node scripts/instalar/index.mjs --base https://SEU-PAINEL`
-  imprime o SQL do pg_cron; o usuário cola no SQL Editor.
+1. `vercel` na pasta: faz login (no navegador do usuário) e o primeiro deploy, e linka a pasta.
+2. Envs do `.env.local` no projeto: `node scripts/instalar/agente.mjs --valendo --vercel`
+   (usa o login da CLI; não pede token). Depois `vercel --prod` para o build pegar as envs.
+3. Rotinas do painel (agendadas, SLA, alertas), apontando para a URL publicada:
+   `node scripts/instalar/agente.mjs --valendo --base https://SEU-PAINEL.vercel.app`
+   Ele desagenda e agenda cada job no pg_cron; o bearer é lido de dentro do banco.
 
-Para testar local, nenhum dos dois é necessário.
+Confira no fim: `node scripts/instalar/index.mjs --base https://SEU-PAINEL` faz o smoke test.
+Para testar local, nada disso é necessário.
 
 ## O que ainda não faz (diga, se perguntarem)
 

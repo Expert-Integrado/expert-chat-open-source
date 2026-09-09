@@ -6,6 +6,8 @@
 //   node scripts/instalar/agente.mjs --valendo --admin-email voce@empresa.com   # + primeiro admin (pede a senha)
 //   node scripts/instalar/agente.mjs --agente ../caminho/do/whatsapp-agent      # se a pasta nao for achada
 //   node scripts/instalar/agente.mjs --mcp-key <MCP_API_KEY>                    # se a chave nao for achada
+//   node scripts/instalar/agente.mjs --valendo --base https://SEU-PAINEL     # + rotinas do pg_cron apontando pro painel publicado
+//   node scripts/instalar/agente.mjs --valendo --vercel                        # + envs do .env.local no projeto linkado da Vercel
 //   node scripts/instalar/agente.mjs --prova
 //
 // De onde vem cada coisa: do `.env` que o setup do agente deixou na pasta dele
@@ -28,10 +30,11 @@ import assert from "node:assert/strict";
 import {
   BUCKETS_DO_PAINEL, CHAVES_DO_AGENTE, ENV_DO_AGENTE, MARCA_DO_AGENTE, SQL_BUCKETS, SQL_EXTENSOES, candidatosDePasta, canalDoAgente, chaveDoAuth,
   chaveDoBanco, chaveDoClaudeJson, ehJwt, emailValido, escolherAnon, escolherChaveMcp, escolherSecret, faltamNoAgente,
-  dbSchemaComPainel, faltandoAposAplicar, literal, migrationsARodar, parseEnv, planoEnvLocal, refValido,
+  baseValida, caminhosAuthVercel, canaisDoAgente, dbSchemaComPainel, envsParaVercel, faltandoAposAplicar, literal,
+  migrationsARodar, parseEnv, planoEnvLocal, refValido, sqlCriarCanal, sqlDesagendar,
   renderEnv, sqlIdPorEmail, sqlPerfilAdmin, sqlTickBearer, uuidValido,
 } from "./agente-plano.mjs";
-import { lerNomeDeMigration, objetosDaMigration, vereditoDaMigration } from "./plano.mjs";
+import { JOBS_CRON, jobsNecessarios, lerNomeDeMigration, objetosDaMigration, sqlDoJob, vereditoDaMigration } from "./plano.mjs";
 
 const RAIZ = path.resolve(new URL("../..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"));
 const MGMT = "https://api.supabase.com";
@@ -214,6 +217,12 @@ async function main() {
   log(`4b. Buckets publicos ${BUCKETS_DO_PAINEL.join(" e ")}: ${valendo ? "garantidos." : "serao garantidos."}`);
   if (valendo) await sql(api, ref, SQL_BUCKETS);
 
+  // 4c. o par de tabelas de cada canal do agente (estado de atendimento no painel)
+  const canaisExtraAtual = atual.CANAIS_EXTRA || JSON.stringify([canalDoAgente({ id: arg("--canal-id") || "agente" })]);
+  const idsCanais = canaisDoAgente(canaisExtraAtual);
+  log(`4c. Tabelas de estado do(s) canal(is) ${idsCanais.map((i) => `\`${i}\``).join(", ") || "(nenhum canal whatsapp-agent no CANAIS_EXTRA)"}: ${valendo ? "garantidas." : "serao garantidas."}`);
+  if (valendo) for (const id of idsCanais) await sql(api, ref, sqlCriarCanal(id));
+
   // 5. .env.local — nunca sobrescreve chave existente
   const plano = planoEnvLocal({ ref, anon: anon.chave, serviceRole, chaveMcp: chaveMcp || "", canal: canalDoAgente({ id: arg("--canal-id") || "agente", rotulo: arg("--rotulo") || "Meu WhatsApp", conta: arg("--conta") || undefined }), atual, gerar: () => crypto.randomBytes(32).toString("hex") });
   log(`5. .env.local: ${plano.novas.length} chave(s) a escrever${plano.mantidas.length ? `, ${plano.mantidas.length} ja existente(s) mantida(s)` : ""}: ${plano.novas.join(", ") || "nada"}.`);
@@ -256,6 +265,43 @@ async function main() {
     if (valendo) await sql(api, ref, sqlPerfilAdmin(uuid, email.split("@")[0]));
     log(`7. Administrador ${email}: ${valendo ? (achado?.[0] ? "ja existia no Auth, perfil super_admin garantido." : "criado e promovido a super_admin.") : "sera criado (ou promovido, se ja existir)."}`);
   } else log("7. Administrador: pulado (passe `--admin-email voce@empresa.com`).");
+
+  // 8. rotinas do pg_cron (so com --base: elas chamam o painel PUBLICADO pela rede)
+  const base = (arg("--base") || "").replace(/\/+$/, "");
+  if (base) {
+    if (!baseValida(base)) { log("**--base invalido**: use https://SEU-PAINEL (sem caminho)."); process.exitCode = 1; return; }
+    let modulos = {};
+    try { modulos = JSON.parse(plano.final.MODULOS || "{}"); } catch { /* sem modulo */ }
+    const jobs = jobsNecessarios(modulos);
+    log(`8. Rotinas do pg_cron apontando pra ${base}: ${jobs.map((j) => j.nome).join(", ")} ${valendo ? "(agendadas)" : "(serao agendadas)"}; fora por modulo desligado: ${JOBS_CRON.filter((j) => !jobs.includes(j)).map((j) => j.nome).join(", ") || "nenhuma"}.`);
+    if (valendo) for (const j of jobs) { await sql(api, ref, sqlDesagendar(j.nome)); await sql(api, ref, sqlDoJob(j, base)); }
+  } else log("8. Rotinas do pg_cron: pulado (passe `--base https://SEU-PAINEL` depois de publicar).");
+
+  // 9. envs no projeto da Vercel (so com --vercel: pasta linkada pelo `vercel`)
+  if (argv.includes("--vercel")) {
+    const proj = lerJsonSeguro(path.join(RAIZ, ".vercel", "project.json"));
+    const authArq = caminhosAuthVercel(os.homedir(), process.platform, process.env.APPDATA).find((p) => fs.existsSync(p));
+    const token = process.env.VERCEL_TOKEN || lerJsonSeguro(authArq || "")?.token;
+    if (!proj?.projectId || !token) {
+      log("**Vercel: pasta nao linkada ou CLI sem login.** Rode `vercel` uma vez nesta pasta (ele faz login e o primeiro deploy) e repita.");
+      process.exitCode = 1; return;
+    }
+    const equipe = proj.orgId ? `?teamId=${proj.orgId}` : "";
+    const cab = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+    const lista = await http(`https://api.vercel.com/v9/projects/${proj.projectId}/env${equipe}`, { headers: cab });
+    if (lista.status !== 200) { log(`**Vercel respondeu HTTP ${lista.status} ao listar as envs** (token expirado? \`vercel login\` de novo).`); process.exitCode = 1; return; }
+    const faltam = envsParaVercel(plano.final, (lista.json?.envs || []).map((e) => e.key));
+    log(`9. Envs no projeto da Vercel \`${proj.projectName || proj.projectId}\`: ${faltam.length} a subir (${faltam.map((e) => e.key).join(", ") || "nada"}); as que ja existem la ficam como estao.`);
+    if (valendo) {
+      const erros = [];
+      for (const e of faltam) {
+        const r = await http(`https://api.vercel.com/v10/projects/${proj.projectId}/env${equipe}`, { method: "POST", headers: cab, body: JSON.stringify(e) });
+        if (r.status !== 200 && r.status !== 201) erros.push(`${e.key} (HTTP ${r.status})`);
+      }
+      if (erros.length) { log(`**Falhou ao subir:** ${erros.join(", ")}`); process.exitCode = 1; return; }
+      if (faltam.length) log("   Variavel so entra em build novo: rode `vercel --prod`.");
+    }
+  }
 
   log("");
   if (!valendo) log("Nada foi alterado. Rode de novo com `--valendo` pra aplicar.");
@@ -347,6 +393,36 @@ function prova() {
     assert.deepEqual(dbSchemaComPainel("public, graphql_public, mensageria"), { precisa: false, novo: "public, graphql_public, mensageria" });
     assert.deepEqual(dbSchemaComPainel(""), { precisa: true, novo: "mensageria" });
     assert.ok(dbSchemaComPainel("public").novo.startsWith("public"), "public continua na frente");
+  });
+
+  t("canal do agente: par de tabelas por canal declarado; id torto e recusado", () => {
+    assert.deepEqual(canaisDoAgente('[{"id":"agente","fonte":"whatsapp-agent"},{"id":"ig","fonte":"instagram-agent"},{"id":"Ruim!","fonte":"whatsapp-agent"}]'), ["agente"]);
+    assert.deepEqual(canaisDoAgente("{nao json"), []);
+    assert.equal(sqlCriarCanal("agente"), "select mensageria.criar_canal_whatsapp('agente');");
+    assert.throws(() => sqlCriarCanal("central"), "builtin nao passa pela funcao");
+    assert.throws(() => sqlCriarCanal("x'y"));
+  });
+
+  t("cron: desagenda antes de agendar (nome repetido duplicaria), base so https sem caminho", () => {
+    assert.match(sqlDesagendar("expert_chat_vigia"), /perform cron\.unschedule\('expert_chat_vigia'\)/);
+    assert.match(sqlDesagendar("expert_chat_vigia"), /exception when others then null/);
+    assert.throws(() => sqlDesagendar("x; drop"));
+    assert.equal(baseValida("https://painel.exemplo.com"), true);
+    assert.equal(baseValida("https://painel.exemplo.com/"), true);
+    assert.equal(baseValida("http://painel.exemplo.com"), false, "so https");
+    assert.equal(baseValida("https://painel.exemplo.com/api"), false, "sem caminho");
+    assert.equal(jobsNecessarios({}).some((j) => j.nome === "expert_chat_tick_disparo"), false, "modulo desligado fica fora");
+  });
+
+  t("vercel: token da CLI por plataforma; so sobe o que falta; segredo vai encrypted", () => {
+    assert.match(caminhosAuthVercel("/h", "darwin")[0], /Application Support\/com\.vercel\.cli\/auth\.json$/);
+    assert.match(caminhosAuthVercel("/h", "linux")[0], /\.config\/com\.vercel\.cli\/auth\.json$/);
+    assert.match(caminhosAuthVercel("/h", "win32", "C:\\ad")[0], /com\.vercel\.cli/);
+    const f = envsParaVercel({ MSG_SUPABASE_URL: "u", WA_MCP_KEY: "k", NEXT_PUBLIC_AUTH_ANON_KEY: "a", VAZIA: "" }, ["MSG_SUPABASE_URL"]);
+    assert.deepEqual(f.map((e) => e.key), ["WA_MCP_KEY", "NEXT_PUBLIC_AUTH_ANON_KEY"], "existente e vazia ficam fora");
+    assert.equal(f[0].type, "encrypted");
+    assert.equal(f[1].type, "plain", "NEXT_PUBLIC_ e publica por definicao");
+    assert.deepEqual(f[0].target, ["production", "preview", "development"]);
   });
 
   t("SQL: aspas escapadas, e-mail/uuid validados antes de virar query", () => {

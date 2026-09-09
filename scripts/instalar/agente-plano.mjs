@@ -293,3 +293,68 @@ export function dbSchemaComPainel(atual) {
   if (lista.includes(SCHEMA_DO_PAINEL)) return { precisa: false, novo: lista.join(", ") };
   return { precisa: true, novo: [...lista, SCHEMA_DO_PAINEL].join(", ") };
 }
+
+// ── o par de tabelas do canal do agente (estado no painel) ─────────────────
+//
+// O canal `whatsapp-agent` LE conversas e mensagens do banco do agente, mas o
+// ESTADO de atendimento (status, etiqueta, ficha, arquivo, nota interna) mora
+// no painel — no mesmo par de tabelas que qualquer canal extra tem
+// (`conversas_<id>`/`mensagens_<id>`, funcao `criar_canal_whatsapp` da 0007).
+// Sem o par, essas acoes respondem 503 com o SQL abaixo. Idempotente.
+export function idDeCanalValido(id) {
+  return /^[a-z][a-z0-9_]{1,30}$/.test(String(id || "")) && id !== "central" && id !== "apioficial";
+}
+
+export function sqlCriarCanal(id) {
+  if (!idDeCanalValido(id)) throw new Error(`id de canal invalido: ${id}`);
+  return `select mensageria.criar_canal_whatsapp('${id}');`;
+}
+
+/** Os canais do agente declarados em CANAIS_EXTRA (JSON); torto = lista vazia. */
+export function canaisDoAgente(canaisExtra) {
+  try {
+    const arr = JSON.parse(canaisExtra || "[]");
+    return Array.isArray(arr) ? arr.filter((c) => c?.fonte === "whatsapp-agent" && idDeCanalValido(c?.id)).map((c) => c.id) : [];
+  } catch {
+    return [];
+  }
+}
+
+// ── rotinas do pg_cron pela Management API ──────────────────────────────────
+//
+// `cron.schedule` com nome repetido NAO substitui: duplica o job. Desagenda
+// antes, engolindo "nao existe" — e o unico jeito de ser idempotente sem ler o
+// catalogo. Quem monta o comando do job e `sqlDoJob` (plano.mjs): o bearer e
+// lido de dentro do banco, nunca viaja no SQL.
+export function sqlDesagendar(nome) {
+  if (!/^[a-z0-9_]+$/.test(nome)) throw new Error(`nome de job invalido: ${nome}`);
+  return `do $$ begin perform cron.unschedule('${nome}'); exception when others then null; end $$;`;
+}
+
+export function baseValida(base) {
+  return /^https:\/\/[a-z0-9.-]+(:\d+)?$/i.test(String(base || "").replace(/\/+$/, ""));
+}
+
+// ── envs na Vercel ──────────────────────────────────────────────────────────
+//
+// O `vercel` (CLI) linka a pasta em `.vercel/project.json` e guarda o token do
+// login em `auth.json` da propria CLI — nao ha token pra pedir ao usuario. As
+// envs do `.env.local` sobem pelas MESMAS chamadas que `index.mjs --envs-vercel`
+// ja usa. Valor com cara de segredo vai `encrypted`; o resto, `plain`.
+export function caminhosAuthVercel(home, plataforma, appData) {
+  if (plataforma === "win32") return [path.join(appData || path.join(home, "AppData", "Roaming"), "com.vercel.cli", "auth.json")];
+  if (plataforma === "darwin") return [path.join(home, "Library", "Application Support", "com.vercel.cli", "auth.json"), path.join(home, ".vercel", "auth.json")];
+  return [path.join(home, ".config", "com.vercel.cli", "auth.json"), path.join(home, ".vercel", "auth.json")];
+}
+
+export function ehSegredo(nome) {
+  return /KEY|SECRET|TOKEN|SENHA|PASSWORD/i.test(nome) && !/^NEXT_PUBLIC_/.test(nome);
+}
+
+/** O que falta no projeto da Vercel, a partir do .env.local. NUNCA sobrescreve o que ja esta la. */
+export function envsParaVercel(envLocal, nomesRemotos) {
+  const la = new Set(nomesRemotos || []);
+  return Object.entries(envLocal || {})
+    .filter(([k, v]) => String(v || "").trim() && !la.has(k))
+    .map(([k, v]) => ({ key: k, value: String(v), type: ehSegredo(k) ? "encrypted" : "plain", target: ["production", "preview", "development"] }));
+}

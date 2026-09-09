@@ -160,8 +160,8 @@ async function passoConexao(env) {
     passo("conexao", "erro", `chave recusada (HTTP ${r.status})`);
     linha(`**chave recusada (HTTP ${r.status}).** E a service_role deste projeto? Ela foi rotacionada?`);
   } else if (r.status === 404 || (r.corpo || "").includes("PGRST205")) {
-    passo("conexao", "aviso", "conecta, mas o schema/tabela nao existe (migration 0001 pendente)");
-    linha("**conecta, mas nao acha `mensageria.config`** — a migration `0001_schema_completo.sql` ainda nao rodou.");
+    passo("conexao", "aviso", "conecta, mas nao enxerga mensageria.config (schema nao exposto no PostgREST ou 0001 pendente)");
+    linha("**conecta, mas nao acha `mensageria.config`** — ou o schema `mensageria` nao esta em Settings → API → Exposed schemas (o painel INTEIRO depende disso), ou a migration `0001_schema_completo.sql` ainda nao rodou.");
   } else {
     passo("conexao", "erro", r.status === null ? `sem resposta: ${r.erro}` : `HTTP ${r.status}`);
     linha(r.status === null ? `**sem resposta:** ${r.erro}` : `**HTTP ${r.status}** inesperado.`);
@@ -520,7 +520,11 @@ function prova() {
     assert.equal(defs.every((d) => !d.obrigatoria), true, "canal desligado nao bloqueia");
     assert.equal(defs.some((d) => d.canal === "antigo"), true, "o canal desligado aparece, so nao e cobrado");
     // pelo CANAL, nao por pedaco do nome: "ZAPI_ANTIGO_INSTANCE_ID" contem "INSTA"
-    assert.equal(defs.some((d) => d.canal === "insta"), false, "fonte externa e somente leitura: nao ha envio");
+    assert.equal(defs.some((d) => d.canal === "insta"), false, "fonte externa instagram e somente leitura: nao ha envio");
+    const wa = envsDosCanais({ CANAIS_EXTRA: JSON.stringify([{ id: "agente", fonte: "whatsapp-agent", ativo: true }]) }).defs.filter((d) => d.canal === "agente");
+    assert.deepEqual(wa.map((d) => d.nome), ["WA_MCP_URL", "WA_MCP_KEY"], "canal do agente cobra as envs globais da mcp-api");
+    assert.equal(wa.every((d) => d.obrigatoria), true);
+    assert.equal(wa.find((d) => d.nome === "WA_MCP_KEY").segredo, true);
     assert.equal(conferirEnvs(env, []).pode_subir, true);
   });
 
