@@ -210,3 +210,16 @@ export function sqlPerfilAdmin(uuid, nome) {
 
 /** Extensoes que as rotinas do painel precisam (idempotente; o agente ja liga as duas na 0001 dele). */
 export const SQL_EXTENSOES = "create extension if not exists pg_cron; create extension if not exists pg_net;";
+
+/**
+ * Os dois buckets PUBLICOS que o painel usa e que migration nenhuma cria (no
+ * repo e gesto humano no dashboard): `midia-mensagens` (midia enviada e
+ * persistida) e `fotos-perfil` (foto do atendente e do contato). Sem o
+ * primeiro, mandar foto pelo canal do agente falha com "nao consegui guardar a
+ * midia". Idempotente.
+ */
+export const BUCKETS_DO_PAINEL = ["midia-mensagens", "fotos-perfil"];
+export const SQL_BUCKETS =
+  "insert into storage.buckets (id, name, public) values " +
+  BUCKETS_DO_PAINEL.map((b) => `('${b}', '${b}', true)`).join(", ") +
+  " on conflict (id) do update set public = true;";

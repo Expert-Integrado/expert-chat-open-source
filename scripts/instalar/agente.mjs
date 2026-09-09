@@ -26,7 +26,7 @@ import crypto from "node:crypto";
 import readline from "node:readline";
 import assert from "node:assert/strict";
 import {
-  CHAVES_DO_AGENTE, ENV_DO_AGENTE, MARCA_DO_AGENTE, SQL_EXTENSOES, candidatosDePasta, canalDoAgente, chaveDoAuth,
+  BUCKETS_DO_PAINEL, CHAVES_DO_AGENTE, ENV_DO_AGENTE, MARCA_DO_AGENTE, SQL_BUCKETS, SQL_EXTENSOES, candidatosDePasta, canalDoAgente, chaveDoAuth,
   chaveDoBanco, chaveDoClaudeJson, ehJwt, emailValido, escolherAnon, escolherChaveMcp, faltamNoAgente, literal,
   parseEnv, planoEnvLocal, refValido,
   renderEnv, sqlIdPorEmail, sqlPerfilAdmin, sqlTickBearer, uuidValido,
@@ -172,6 +172,10 @@ async function main() {
     }
   }
 
+  // 4b. buckets publicos do painel (midia enviada, fotos) — migration nenhuma cria
+  log(`4b. Buckets publicos ${BUCKETS_DO_PAINEL.join(" e ")}: ${valendo ? "garantidos." : "serao garantidos."}`);
+  if (valendo) await sql(api, ref, SQL_BUCKETS);
+
   // 5. .env.local — nunca sobrescreve chave existente
   const plano = planoEnvLocal({ ref, anon: anon.chave, serviceRole, chaveMcp: chaveMcp || "", canal: canalDoAgente({ id: arg("--canal-id") || "agente", rotulo: arg("--rotulo") || "Meu WhatsApp", conta: arg("--conta") || undefined }), atual, gerar: () => crypto.randomBytes(32).toString("hex") });
   log(`5. .env.local: ${plano.novas.length} chave(s) a escrever${plano.mantidas.length ? `, ${plano.mantidas.length} ja existente(s) mantida(s)` : ""}: ${plano.novas.join(", ") || "nada"}.`);
@@ -287,6 +291,8 @@ function prova() {
     assert.throws(() => sqlPerfilAdmin("123"));
     assert.match(sqlPerfilAdmin("6f1e4c1a-1b2c-4d3e-8f9a-0b1c2d3e4f5a", "x"), /super_admin/);
     assert.match(SQL_EXTENSOES, /pg_cron/);
+    assert.match(SQL_BUCKETS, /\('midia-mensagens', 'midia-mensagens', true\)/);
+    assert.match(SQL_BUCKETS, /on conflict \(id\) do update set public = true/, "bucket que ja existe privado vira publico, nao erro");
   });
   console.log(`\nagente --prova: ${n} blocos OK`);
 }
