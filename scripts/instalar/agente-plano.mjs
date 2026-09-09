@@ -42,14 +42,59 @@ export function candidatosDePasta(raizPainel, home, explicita) {
   return [...new Set(c)];
 }
 
-/** Marca de pasta do agente: a edge da mcp-api + o .env do setup. */
-export const MARCAS_DO_AGENTE = ["supabase/functions/mcp-api/index.ts", ".env"];
+/**
+ * O que IDENTIFICA a pasta do agente e o codigo dele (a edge da mcp-api). O
+ * `.env` e OUTRA pergunta: pasta certa sem `.env` (agent na VPS, clone fresco)
+ * precisa de diagnostico proprio — "nao achei a pasta" mandava a pessoa passar
+ * `--agente` com o caminho certo e receber a mesma frase (achado 09/09/2026).
+ */
+export const MARCA_DO_AGENTE = "supabase/functions/mcp-api/index.ts";
+export const ENV_DO_AGENTE = ".env";
+
+/**
+ * A chave do banco, na MESMA ordem do `_shared/db-key.ts` do agente: a
+ * service_role legada (JWT) pode estar DESABILITADA num projeto migrado — la a
+ * chave e a nova (`sb_secret_…`), em `SUPABASE_SECRET_KEYS` (JSON, entrada
+ * `default`) ou `SUPABASE_SECRET_KEY`. Exigir so o nome velho recusava um
+ * `.env` que tinha a chave certa.
+ */
+export function chaveDoBanco(envAgente) {
+  try {
+    const d = JSON.parse(envAgente?.SUPABASE_SECRET_KEYS || "");
+    const v = d && typeof d === "object" && !Array.isArray(d) ? String(d.default || "").trim() : "";
+    if (v) return { chave: v, fonte: "SUPABASE_SECRET_KEYS" };
+  } catch { /* nao e JSON: cai pro proximo */ }
+  for (const k of ["SUPABASE_SECRET_KEY", "SUPABASE_SERVICE_ROLE_KEY"]) {
+    const v = String(envAgente?.[k] || "").trim();
+    if (v) return { chave: v, fonte: k };
+  }
+  return { chave: "", fonte: "none" };
+}
+
+/** JWT (`eyJ…`) ou chave nova? O Auth admin so aceita a primeira forma. */
+export function ehJwt(chave) {
+  return /^eyJ[\w-]+\.[\w-]+\.[\w-]+$/.test(String(chave || ""));
+}
+
+/**
+ * A chave pro GoTrue admin (criar o 1o usuario). A `sb_secret_` cobre DB e
+ * Storage, nao o endpoint admin do Auth, que exige JWT. Sem JWT no `.env`,
+ * o IO tenta mesmo assim e, no 401, explica o gesto no dashboard.
+ */
+export function chaveDoAuth(envAgente) {
+  const legada = String(envAgente?.SUPABASE_SERVICE_ROLE_KEY || "").trim();
+  if (ehJwt(legada)) return { chave: legada, jwt: true };
+  const db = chaveDoBanco(envAgente).chave;
+  return { chave: db, jwt: ehJwt(db) };
+}
 
 /** O que o `.env` do agente precisa ter pra este instalador andar sozinho. */
-export const CHAVES_DO_AGENTE = ["SUPABASE_ACCESS_TOKEN", "SUPABASE_PROJECT_REF", "SUPABASE_SERVICE_ROLE_KEY"];
+export const CHAVES_DO_AGENTE = ["SUPABASE_ACCESS_TOKEN", "SUPABASE_PROJECT_REF"];
 
 export function faltamNoAgente(envAgente) {
-  return CHAVES_DO_AGENTE.filter((k) => !String(envAgente?.[k] || "").trim());
+  const f = CHAVES_DO_AGENTE.filter((k) => !String(envAgente?.[k] || "").trim());
+  if (!chaveDoBanco(envAgente).chave) f.push("SUPABASE_SECRET_KEY (ou SUPABASE_SECRET_KEYS, ou a legada SUPABASE_SERVICE_ROLE_KEY)");
+  return f;
 }
 
 /** ref valido = o subdominio do projeto (20 letras minusculas). */

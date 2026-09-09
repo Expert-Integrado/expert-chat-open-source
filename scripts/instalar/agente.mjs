@@ -26,8 +26,9 @@ import crypto from "node:crypto";
 import readline from "node:readline";
 import assert from "node:assert/strict";
 import {
-  CHAVES_DO_AGENTE, MARCAS_DO_AGENTE, SQL_EXTENSOES, candidatosDePasta, canalDoAgente, chaveDoClaudeJson,
-  emailValido, escolherAnon, escolherChaveMcp, faltamNoAgente, literal, parseEnv, planoEnvLocal, refValido,
+  CHAVES_DO_AGENTE, ENV_DO_AGENTE, MARCA_DO_AGENTE, SQL_EXTENSOES, candidatosDePasta, canalDoAgente, chaveDoAuth,
+  chaveDoBanco, chaveDoClaudeJson, ehJwt, emailValido, escolherAnon, escolherChaveMcp, faltamNoAgente, literal,
+  parseEnv, planoEnvLocal, refValido,
   renderEnv, sqlIdPorEmail, sqlPerfilAdmin, sqlTickBearer, uuidValido,
 } from "./agente-plano.mjs";
 import { filaDeMigrations, lerNomeDeMigration, objetosDaMigration, vereditoDaMigration } from "./plano.mjs";
@@ -75,7 +76,7 @@ function perguntarOculto(pergunta) {
 
 function acharPastaDoAgente(explicita) {
   for (const c of candidatosDePasta(RAIZ, os.homedir(), explicita)) {
-    if (MARCAS_DO_AGENTE.every((m) => fs.existsSync(path.join(c, m)))) return c;
+    if (fs.existsSync(path.join(c, MARCA_DO_AGENTE))) return c;
   }
   return null;
 }
@@ -115,16 +116,24 @@ async function main() {
 
   // 1. a pasta e o .env do agente
   const pasta = acharPastaDoAgente(arg("--agente"));
-  if (!pasta) { log("**Nao achei a pasta do WhatsApp Agent.** Passe `--agente <caminho>` (a pasta que tem `.env` e `supabase/functions/mcp-api`)."); process.exitCode = 1; return; }
-  const envAgente = parseEnv(fs.readFileSync(path.join(pasta, ".env"), "utf8"));
+  if (!pasta) { log(`**Nao achei a pasta do WhatsApp Agent** (a que tem \`${MARCA_DO_AGENTE}\`). Passe \`--agente <caminho>\`.`); process.exitCode = 1; return; }
+  const envPath = path.join(pasta, ENV_DO_AGENTE);
+  if (!fs.existsSync(envPath)) {
+    log(`**Achei o agente em \`${pasta}\`, mas ele nao tem \`.env\`.** E nele que o setup do agente guarda o ref do projeto (SUPABASE_PROJECT_REF), o PAT (SUPABASE_ACCESS_TOKEN) e a chave do banco (SUPABASE_SECRET_KEY ou a legada SUPABASE_SERVICE_ROLE_KEY). Agent rodando na VPS ou clone novo: crie o \`.env\` com essas tres, ou rode o \`/setup\` do agente.`);
+    process.exitCode = 1; return;
+  }
+  const envAgente = parseEnv(fs.readFileSync(envPath, "utf8"));
   const faltam = faltamNoAgente(envAgente);
   if (faltam.length) { log(`**O .env do agente em ${pasta} nao tem:** ${faltam.join(", ")}. Reabra o setup do agente pra completar.`); process.exitCode = 1; return; }
   const ref = envAgente.SUPABASE_PROJECT_REF;
   if (!refValido(ref)) { log("**SUPABASE_PROJECT_REF com forma inesperada** (esperado: 20 letras)."); process.exitCode = 1; return; }
   const pat = envAgente.SUPABASE_ACCESS_TOKEN;
-  const serviceRole = envAgente.SUPABASE_SERVICE_ROLE_KEY;
+  // chave do banco (DB/Storage) na ordem do db-key.ts do agente; a do Auth admin e outra pergunta
+  const banco = chaveDoBanco(envAgente);
+  const serviceRole = banco.chave;
+  const auth = chaveDoAuth(envAgente);
   const url = `https://${ref}.supabase.co`;
-  log(`1. Agente em \`${pasta}\` — projeto \`${ref}\`.`);
+  log(`1. Agente em \`${pasta}\` — projeto \`${ref}\`; chave do banco: ${banco.fonte}${ehJwt(serviceRole) ? " (legada, JWT)" : " (nova)"}.`);
 
   // 2. chave anon (login) pela Management API
   const api = mgmt(pat);
@@ -178,12 +187,23 @@ async function main() {
     if (!emailValido(email)) { log("**--admin-email invalido.**"); process.exitCode = 1; return; }
     const achado = valendo ? await sql(api, ref, sqlIdPorEmail(email)) : [];
     let uuid = achado?.[0]?.id ?? null;
+    // O GoTrue admin exige JWT: a chave nova (`sb_secret_`) passa no DB e no
+    // Storage e leva 401 aqui. Sem JWT no .env, testa ANTES de pedir senha —
+    // e, no 401, o gesto vira "crie o usuario no dashboard e rode de novo" (o
+    // perfil super_admin e feito por SQL, que nao depende dessa chave).
+    if (valendo && !uuid && !auth.jwt) {
+      const teste = await http(`${url}/auth/v1/admin/users?per_page=1`, { headers: { apikey: auth.chave, Authorization: `Bearer ${auth.chave}` } });
+      if (teste.status === 401 || teste.status === 403) {
+        log(`7. Administrador: o projeto usa so a chave nova (sb_secret_), que o Auth admin nao aceita. **Crie o usuario no dashboard** (Authentication → Users → Add user: ${email} + senha) e rode este comando de novo: o perfil super_admin e feito por SQL e nao precisa dessa chave.`);
+        process.exitCode = 2; return;
+      }
+    }
     if (valendo && !uuid) {
       const senha = arg("--admin-senha") || (process.stdin.isTTY ? await perguntarOculto(`Senha para ${email} (nao aparece na tela, minimo 8): `) : "");
       if (senha.length < 8) { log("**Senha curta demais (minimo 8).**"); process.exitCode = 1; return; }
       const r = await http(`${url}/auth/v1/admin/users`, {
         method: "POST",
-        headers: { apikey: serviceRole, Authorization: `Bearer ${serviceRole}`, "Content-Type": "application/json" },
+        headers: { apikey: auth.chave, Authorization: `Bearer ${auth.chave}`, "Content-Type": "application/json" },
         body: JSON.stringify({ email, password: senha, email_confirm: true }),
       });
       if (r.status >= 400 || !uuidValido(r.json?.id)) { log(`**Falha ao criar o usuario (HTTP ${r.status}):** ${r.json?.msg || r.json?.message || r.texto.slice(0, 200)}`); process.exitCode = 1; return; }
@@ -216,9 +236,22 @@ function prova() {
     assert.equal(c[2], path.resolve("/home/u/whatsapp-agent"));
     assert.equal(candidatosDePasta("/r/painel", "/home/u").length, 2);
   });
-  t(".env do agente: faltando chave e ref torto sao recusados", () => {
-    assert.deepEqual(faltamNoAgente({ SUPABASE_PROJECT_REF: "a" }), ["SUPABASE_ACCESS_TOKEN", "SUPABASE_SERVICE_ROLE_KEY"]);
-    assert.equal(faltamNoAgente(Object.fromEntries(CHAVES_DO_AGENTE.map((k) => [k, "v"]))).length, 0);
+  t(".env do agente: faltando chave e ref torto sao recusados; a chave do banco tem 3 nomes", () => {
+    assert.deepEqual(faltamNoAgente({ SUPABASE_PROJECT_REF: "a" }), ["SUPABASE_ACCESS_TOKEN", "SUPABASE_SECRET_KEY (ou SUPABASE_SECRET_KEYS, ou a legada SUPABASE_SERVICE_ROLE_KEY)"]);
+    const base = Object.fromEntries(CHAVES_DO_AGENTE.map((k) => [k, "v"]));
+    assert.equal(faltamNoAgente({ ...base, SUPABASE_SERVICE_ROLE_KEY: "eyJa.b.c" }).length, 0, "legada serve");
+    assert.equal(faltamNoAgente({ ...base, SUPABASE_SECRET_KEY: "sb_secret_x" }).length, 0, "nova (singular) serve");
+    assert.equal(faltamNoAgente({ ...base, SUPABASE_SECRET_KEYS: '{"default":"sb_secret_y"}' }).length, 0, "nova (dicionario) serve");
+    assert.equal(faltamNoAgente(base).length, 1, "sem nenhuma das tres: falta");
+    // mesma ordem do db-key.ts do agente
+    assert.deepEqual(chaveDoBanco({ SUPABASE_SECRET_KEYS: '{"default":"D"}', SUPABASE_SECRET_KEY: "S", SUPABASE_SERVICE_ROLE_KEY: "eyJ.a.b" }), { chave: "D", fonte: "SUPABASE_SECRET_KEYS" });
+    assert.deepEqual(chaveDoBanco({ SUPABASE_SECRET_KEYS: "{nao json", SUPABASE_SECRET_KEY: "S" }), { chave: "S", fonte: "SUPABASE_SECRET_KEY" }, "dicionario torto nao derruba: cai pro proximo");
+    assert.equal(chaveDoBanco({}).fonte, "none");
+    // Auth admin: JWT legado quando existe; senao a do banco, marcada como nao-JWT
+    assert.equal(ehJwt("eyJhbGci.eyJyb2xl.abc-_"), true);
+    assert.equal(ehJwt("sb_secret_abc"), false);
+    assert.deepEqual(chaveDoAuth({ SUPABASE_SECRET_KEY: "sb_secret_x", SUPABASE_SERVICE_ROLE_KEY: "eyJa.b.c" }), { chave: "eyJa.b.c", jwt: true });
+    assert.deepEqual(chaveDoAuth({ SUPABASE_SECRET_KEY: "sb_secret_x" }), { chave: "sb_secret_x", jwt: false });
     assert.equal(refValido("abcdefghijklmnopqrst"), true);
     assert.equal(refValido("ABC"), false);
   });
