@@ -141,6 +141,9 @@ rodou: repita o comando acima.
   violações. Ajuste o texto ou o voice guide da instância.
 - **502 "a mcp-api do agente recusou a credencial"**: `WA_MCP_KEY` diferente da `MCP_API_KEY`
   configurada nos secrets da edge function do agent.
+- **400 "etiqueta fora do catálogo" na primeira etiquetagem**: não é do canal do agent. O
+  catálogo de etiquetas nasce vazio; o super admin cria as etiquetas em Configurações →
+  Etiquetas (catálogo único) antes de alguém etiquetar.
 - **Instalador diz que achou o agent mas não tem `.env`**: o agent roda na VPS ou é um clone novo.
   Crie o `.env` na pasta dele com só duas linhas, `SUPABASE_PROJECT_REF` e `SUPABASE_ACCESS_TOKEN`
   (o PAT, em Account → Access Tokens). A chave do banco o instalador pega do próprio projeto.

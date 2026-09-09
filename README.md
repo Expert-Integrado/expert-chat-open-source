@@ -405,6 +405,14 @@ on conflict (chave) do update set valor = excluded.valor, updated_at = now();
 Se você ligou automação ou disparo, volte ao passo 6: cada um tem uma rotina própria, e sem ela
 o fluxo nunca executa e a campanha nunca sai da fila.
 
+## O catálogo de etiquetas nasce vazio
+
+Instalação nova não tem etiqueta nenhuma cadastrada, e a rota só aceita etiqueta do catálogo —
+então a primeira tentativa de etiquetar uma conversa responde **400 "etiqueta fora do catálogo"**
+sem que nada esteja quebrado. O super admin cria as etiquetas em **Configurações → Etiquetas
+(catálogo único)**, e a partir daí o atendente escolhe entre elas. Mesma ideia dos campos da
+ficha: o catálogo é do admin, o valor é do atendente.
+
 ## Atualizar uma instalação que já existe
 
 Código novo não muda nada do que você já configurou: o `.env.local` é seu e fica fora do Git, e
