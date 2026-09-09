@@ -117,9 +117,10 @@ Decisões de 09/09/2026 (Eric, Asafe, Victor), registradas para quem revisar:
 - **Instalador diz que achou o agent mas não tem `.env`**: o agent roda na VPS ou é um clone novo.
   Crie o `.env` na pasta dele com só duas linhas, `SUPABASE_PROJECT_REF` e `SUPABASE_ACCESS_TOKEN`
   (o PAT, em Account → Access Tokens). A chave do banco o instalador pega do próprio projeto.
-- **Projeto migrado para as chaves novas (`sb_secret_`)**: o banco e o Storage funcionam com ela;
-  só o passo de criar o primeiro admin exige JWT. O instalador avisa e o gesto vira criar o
-  usuário no dashboard (Authentication → Users) e rodar o comando de novo, que promove por SQL.
+- **Projeto migrado para as chaves novas (`sb_secret_`)**: funciona, inclusive para criar o
+  primeiro admin (medido). Se a credencial for recusada pelo Auth (uma `service_role` legada
+  desabilitada, por exemplo), o instalador avisa e o gesto vira criar o usuário no dashboard
+  (Authentication → Users) e rodar o comando de novo, que promove por SQL.
 - **Não monte o `.env` a partir de `/v1/projects/{ref}/secrets` da Management API**: ela devolve os
   valores **hasheados**, não as chaves. O arquivo fica com cara certa e falha com 401 depois.
   Chave de API real só em `api-keys?reveal=true` ou no dashboard; secret de edge function é

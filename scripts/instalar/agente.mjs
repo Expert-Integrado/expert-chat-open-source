@@ -233,12 +233,12 @@ async function main() {
     // Storage e leva 401 aqui. Sem JWT no .env, testa ANTES de pedir senha —
     // e, no 401, o gesto vira "crie o usuario no dashboard e rode de novo" (o
     // perfil super_admin e feito por SQL, que nao depende dessa chave).
-    // Testa SEMPRE antes de pedir senha: a chave nova pode nao passar, e a
-    // legada pode estar DESABILITADA (projeto migrado) mesmo aparecendo na lista.
+    // Testa SEMPRE antes de pedir senha: a legada pode estar DESABILITADA
+    // (projeto migrado) mesmo aparecendo na lista. A nova passa (medido 09/09).
     if (valendo && !uuid) {
       const teste = await http(`${url}/auth/v1/admin/users?per_page=1`, { headers: { apikey: auth.chave, Authorization: `Bearer ${auth.chave}` } });
       if (teste.status === 401 || teste.status === 403) {
-        log(`7. Administrador: a credencial disponivel (${auth.jwt ? "service_role legada, provavelmente desabilitada" : "chave nova sb_secret_"}) nao e aceita pelo Auth admin (HTTP ${teste.status}). **Crie o usuario no dashboard** (Authentication → Users → Add user: ${email} + senha) e rode este comando de novo: o perfil super_admin e feito por SQL e nao precisa dessa chave.`);
+        log(`7. Administrador: a credencial disponivel (${auth.jwt ? "service_role legada, provavelmente desabilitada" : "chave do banco"}) nao foi aceita pelo Auth admin (HTTP ${teste.status}). **Crie o usuario no dashboard** (Authentication → Users → Add user: ${email} + senha) e rode este comando de novo: o perfil super_admin e feito por SQL e nao precisa dessa chave.`);
         process.exitCode = 2; return;
       }
     }

@@ -77,9 +77,13 @@ export function ehJwt(chave) {
 }
 
 /**
- * A chave pro GoTrue admin (criar o 1o usuario). A `sb_secret_` cobre DB e
- * Storage, nao o endpoint admin do Auth, que exige JWT. Sem JWT no `.env`,
- * o IO tenta mesmo assim e, no 401, explica o gesto no dashboard.
+ * A chave pro GoTrue admin (criar o 1o usuario). MEDIDO em 09/09/2026 num
+ * projeto com a legada desabilitada: a `sb_secret_` E aceita pelo endpoint
+ * admin do Auth (o "nao serve como bearer" do db-key.ts do agente vale pro
+ * gateway das edge functions com verify_jwt, que parseia o bearer como JWT —
+ * o GoTrue valida a chave de servico por outro caminho). O JWT legado, quando
+ * existe, continua preferido; e o IO testa a credencial ANTES de pedir senha
+ * porque a legada pode estar DESABILITADA num projeto migrado.
  */
 export function chaveDoAuth(envAgente) {
   const legada = String(envAgente?.SUPABASE_SERVICE_ROLE_KEY || "").trim();
