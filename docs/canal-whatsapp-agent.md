@@ -112,8 +112,8 @@ Decisões de 09/09/2026 (Eric, Asafe, Victor), registradas para quem revisar:
 - **502 "a mcp-api do agente recusou a credencial"**: `WA_MCP_KEY` diferente da `MCP_API_KEY`
   configurada nos secrets da edge function do agent.
 - **Instalador diz que achou o agent mas não tem `.env`**: o agent roda na VPS ou é um clone novo.
-  Crie o `.env` na pasta dele com `SUPABASE_PROJECT_REF`, `SUPABASE_ACCESS_TOKEN` e a chave do
-  banco (`SUPABASE_SECRET_KEY`, ou a legada `SUPABASE_SERVICE_ROLE_KEY`).
+  Crie o `.env` na pasta dele com só duas linhas, `SUPABASE_PROJECT_REF` e `SUPABASE_ACCESS_TOKEN`
+  (o PAT, em Account → Access Tokens). A chave do banco o instalador pega do próprio projeto.
 - **Projeto migrado para as chaves novas (`sb_secret_`)**: o banco e o Storage funcionam com ela;
   só o passo de criar o primeiro admin exige JWT. O instalador avisa e o gesto vira criar o
   usuário no dashboard (Authentication → Users) e rodar o comando de novo, que promove por SQL.

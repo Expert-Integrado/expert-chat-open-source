@@ -88,13 +88,31 @@ export function chaveDoAuth(envAgente) {
   return { chave: db, jwt: ehJwt(db) };
 }
 
-/** O que o `.env` do agente precisa ter pra este instalador andar sozinho. */
+/**
+ * A chave do banco quando o `.env` nao tem nenhuma das tres: a MESMA resposta
+ * da Management API que da a anon (`api-keys?reveal=true`) traz a secret do
+ * projeto. Com PAT + ref (obrigatorios de todo jeito) ela e derivavel — pedir
+ * de novo no `.env` era pedir a mesma informacao duas vezes (sessao vizinha,
+ * 09/09/2026). Escolha EXPLICITA: secret nova (`default` primeiro) e, so se
+ * o projeto nao tiver nenhuma, a service_role legada. NUNCA a publishable/anon:
+ * ela passa no PostgREST como anon e devolveria lista VAZIA em vez de erro — a
+ * falha silenciosa.
+ */
+export function escolherSecret(lista) {
+  const arr = Array.isArray(lista) ? lista : [];
+  const novas = arr.filter((k) => k?.type === "secret" && typeof k?.api_key === "string" && k.api_key.startsWith("sb_secret_"));
+  const nova = novas.find((k) => k.name === "default") ?? novas[0];
+  if (nova) return { chave: nova.api_key, fonte: "api-keys (secret nova)" };
+  const legada = arr.find((k) => k?.name === "service_role" && ehJwt(k?.api_key));
+  if (legada) return { chave: legada.api_key, fonte: "api-keys (service_role legada)" };
+  return { chave: "", fonte: "none" };
+}
+
+/** O que o `.env` do agente precisa ter pra este instalador andar sozinho: o resto se deriva. */
 export const CHAVES_DO_AGENTE = ["SUPABASE_ACCESS_TOKEN", "SUPABASE_PROJECT_REF"];
 
 export function faltamNoAgente(envAgente) {
-  const f = CHAVES_DO_AGENTE.filter((k) => !String(envAgente?.[k] || "").trim());
-  if (!chaveDoBanco(envAgente).chave) f.push("SUPABASE_SECRET_KEY (ou SUPABASE_SECRET_KEYS, ou a legada SUPABASE_SERVICE_ROLE_KEY)");
-  return f;
+  return CHAVES_DO_AGENTE.filter((k) => !String(envAgente?.[k] || "").trim());
 }
 
 /** ref valido = o subdominio do projeto (20 letras minusculas). */

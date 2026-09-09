@@ -27,7 +27,7 @@ import readline from "node:readline";
 import assert from "node:assert/strict";
 import {
   BUCKETS_DO_PAINEL, CHAVES_DO_AGENTE, ENV_DO_AGENTE, MARCA_DO_AGENTE, SQL_BUCKETS, SQL_EXTENSOES, candidatosDePasta, canalDoAgente, chaveDoAuth,
-  chaveDoBanco, chaveDoClaudeJson, ehJwt, emailValido, escolherAnon, escolherChaveMcp, faltamNoAgente, literal,
+  chaveDoBanco, chaveDoClaudeJson, ehJwt, emailValido, escolherAnon, escolherChaveMcp, escolherSecret, faltamNoAgente, literal,
   parseEnv, planoEnvLocal, refValido,
   renderEnv, sqlIdPorEmail, sqlPerfilAdmin, sqlTickBearer, uuidValido,
 } from "./agente-plano.mjs";
@@ -128,20 +128,25 @@ async function main() {
   const ref = envAgente.SUPABASE_PROJECT_REF;
   if (!refValido(ref)) { log("**SUPABASE_PROJECT_REF com forma inesperada** (esperado: 20 letras)."); process.exitCode = 1; return; }
   const pat = envAgente.SUPABASE_ACCESS_TOKEN;
-  // chave do banco (DB/Storage) na ordem do db-key.ts do agente; a do Auth admin e outra pergunta
-  const banco = chaveDoBanco(envAgente);
-  const serviceRole = banco.chave;
-  const auth = chaveDoAuth(envAgente);
   const url = `https://${ref}.supabase.co`;
-  log(`1. Agente em \`${pasta}\` — projeto \`${ref}\`; chave do banco: ${banco.fonte}${ehJwt(serviceRole) ? " (legada, JWT)" : " (nova)"}.`);
+  log(`1. Agente em \`${pasta}\` — projeto \`${ref}\`.`);
 
-  // 2. chave anon (login) pela Management API
+  // 2. chaves do projeto pela Management API: a anon (login) e, se o .env nao
+  //    tiver, a do banco. A do Auth admin e outra pergunta (ver passo 7).
   const api = mgmt(pat);
   const rk = await api(`/v1/projects/${ref}/api-keys?reveal=true`);
   if (rk.status === 401 || rk.status === 403) { log("**O PAT do agente (SUPABASE_ACCESS_TOKEN) foi recusado pela Management API.** Gere outro em Account → Access Tokens e atualize o .env do agente."); process.exitCode = 1; return; }
   const anon = escolherAnon(rk.json);
   if (!anon.chave) { log(`**${anon.aviso}**`); process.exitCode = 1; return; }
-  log(`2. Chave anon do projeto: ok${anon.aviso ? ` — ${anon.aviso}` : ""}.`);
+  // chave do banco (DB/Storage): .env na ordem do db-key.ts do agente, senao a secret do projeto
+  const banco = chaveDoBanco(envAgente).chave ? chaveDoBanco(envAgente) : escolherSecret(rk.json);
+  const serviceRole = banco.chave;
+  if (!serviceRole) { log("**Nao achei chave do banco** nem no .env do agente nem nas api-keys do projeto (nem secret nova, nem service_role legada). Gere uma secret em Settings → API Keys e rode de novo."); process.exitCode = 1; return; }
+  // Auth admin: JWT legado do .env; senao o service_role do projeto, se existir; senao a do banco
+  const doEnv = chaveDoAuth(envAgente);
+  const legadaDoProjeto = (Array.isArray(rk.json) ? rk.json : []).find((k) => k?.name === "service_role" && ehJwt(k?.api_key))?.api_key;
+  const auth = doEnv.jwt ? doEnv : legadaDoProjeto ? { chave: legadaDoProjeto, jwt: true } : { chave: serviceRole, jwt: ehJwt(serviceRole) };
+  log(`2. Chaves do projeto: anon ok${anon.aviso ? ` (${anon.aviso})` : ""}; banco via ${banco.fonte}${ehJwt(serviceRole) ? " (legada, JWT)" : " (nova)"}.`);
 
   // 3. a chave da mcp-api
   const envLocalPath = path.join(RAIZ, ".env.local");
@@ -195,10 +200,12 @@ async function main() {
     // Storage e leva 401 aqui. Sem JWT no .env, testa ANTES de pedir senha —
     // e, no 401, o gesto vira "crie o usuario no dashboard e rode de novo" (o
     // perfil super_admin e feito por SQL, que nao depende dessa chave).
-    if (valendo && !uuid && !auth.jwt) {
+    // Testa SEMPRE antes de pedir senha: a chave nova pode nao passar, e a
+    // legada pode estar DESABILITADA (projeto migrado) mesmo aparecendo na lista.
+    if (valendo && !uuid) {
       const teste = await http(`${url}/auth/v1/admin/users?per_page=1`, { headers: { apikey: auth.chave, Authorization: `Bearer ${auth.chave}` } });
       if (teste.status === 401 || teste.status === 403) {
-        log(`7. Administrador: o projeto usa so a chave nova (sb_secret_), que o Auth admin nao aceita. **Crie o usuario no dashboard** (Authentication → Users → Add user: ${email} + senha) e rode este comando de novo: o perfil super_admin e feito por SQL e nao precisa dessa chave.`);
+        log(`7. Administrador: a credencial disponivel (${auth.jwt ? "service_role legada, provavelmente desabilitada" : "chave nova sb_secret_"}) nao e aceita pelo Auth admin (HTTP ${teste.status}). **Crie o usuario no dashboard** (Authentication → Users → Add user: ${email} + senha) e rode este comando de novo: o perfil super_admin e feito por SQL e nao precisa dessa chave.`);
         process.exitCode = 2; return;
       }
     }
@@ -241,12 +248,14 @@ function prova() {
     assert.equal(candidatosDePasta("/r/painel", "/home/u").length, 2);
   });
   t(".env do agente: faltando chave e ref torto sao recusados; a chave do banco tem 3 nomes", () => {
-    assert.deepEqual(faltamNoAgente({ SUPABASE_PROJECT_REF: "a" }), ["SUPABASE_ACCESS_TOKEN", "SUPABASE_SECRET_KEY (ou SUPABASE_SECRET_KEYS, ou a legada SUPABASE_SERVICE_ROLE_KEY)"]);
+    assert.deepEqual(faltamNoAgente({ SUPABASE_PROJECT_REF: "a" }), ["SUPABASE_ACCESS_TOKEN"], "so PAT e ref sao obrigatorios: a chave do banco se deriva");
     const base = Object.fromEntries(CHAVES_DO_AGENTE.map((k) => [k, "v"]));
-    assert.equal(faltamNoAgente({ ...base, SUPABASE_SERVICE_ROLE_KEY: "eyJa.b.c" }).length, 0, "legada serve");
-    assert.equal(faltamNoAgente({ ...base, SUPABASE_SECRET_KEY: "sb_secret_x" }).length, 0, "nova (singular) serve");
-    assert.equal(faltamNoAgente({ ...base, SUPABASE_SECRET_KEYS: '{"default":"sb_secret_y"}' }).length, 0, "nova (dicionario) serve");
-    assert.equal(faltamNoAgente(base).length, 1, "sem nenhuma das tres: falta");
+    assert.equal(faltamNoAgente(base).length, 0);
+    // a secret do projeto pelas api-keys: nova primeiro (default), legada so sem nova, publishable NUNCA
+    assert.deepEqual(escolherSecret([{ type: "publishable", api_key: "sb_publishable_x" }, { type: "secret", name: "outra", api_key: "sb_secret_o" }, { type: "secret", name: "default", api_key: "sb_secret_d" }, { name: "service_role", type: "legacy", api_key: "eyJa.b.c" }]), { chave: "sb_secret_d", fonte: "api-keys (secret nova)" });
+    assert.deepEqual(escolherSecret([{ name: "anon", api_key: "eyJx.y.z" }, { name: "service_role", api_key: "eyJa.b.c" }]).chave, "eyJa.b.c", "sem nova: a legada");
+    assert.equal(escolherSecret([{ type: "publishable", api_key: "sb_publishable_x" }, { name: "anon", api_key: "eyJx.y.z" }]).fonte, "none", "publishable/anon nunca viram chave do banco");
+    assert.equal(escolherSecret(null).fonte, "none");
     // mesma ordem do db-key.ts do agente
     assert.deepEqual(chaveDoBanco({ SUPABASE_SECRET_KEYS: '{"default":"D"}', SUPABASE_SECRET_KEY: "S", SUPABASE_SERVICE_ROLE_KEY: "eyJ.a.b" }), { chave: "D", fonte: "SUPABASE_SECRET_KEYS" });
     assert.deepEqual(chaveDoBanco({ SUPABASE_SECRET_KEYS: "{nao json", SUPABASE_SECRET_KEY: "S" }), { chave: "S", fonte: "SUPABASE_SECRET_KEY" }, "dicionario torto nao derruba: cai pro proximo");
