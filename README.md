@@ -429,6 +429,10 @@ ficha: o catálogo é do admin, o valor é do atendente.
 
 ## Atualizar uma instalação que já existe
 
+**Não sabe onde a pasta ficou?** Abra o Claude Code em qualquer lugar e peça: *"acha a pasta do
+Expert Chat aqui no meu computador e atualiza ele pra última versão"*. Ele encontra, atualiza e
+roda o conferidor. Você não precisa saber o caminho nem digitar comando nenhum.
+
 Código novo não muda nada do que você já configurou: o `.env.local` é seu e fica fora do Git, e
 migration aplicada não roda de novo. Na pasta do painel:
 

@@ -116,6 +116,9 @@ Decisões de 09/09/2026 (Eric, Asafe, Victor), registradas para quem revisar:
 
 ## Atualizar
 
+Pelo Claude, sem saber onde a pasta está: abra o Claude Code em qualquer lugar e peça *"acha a
+pasta do Expert Chat aqui no meu computador e atualiza ele pra última versão"*. Na mão:
+
 ```bash
 git pull
 node scripts/instalar/agente.mjs --valendo
