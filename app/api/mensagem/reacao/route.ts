@@ -6,7 +6,8 @@ import { getUser } from "@/lib/auth-server";
 import { getPerfil, podeVerConversa, permitido } from "@/lib/perfil";
 import { restricaoEfetiva } from "@/lib/embed";
 import { canalDeBody, tabelas } from "@/lib/canal";
-import { canalPorId } from "@/lib/canais";
+import { canalPorId, fonteExterna } from "@/lib/canais";
+import { fonteLigada } from "@/lib/fonte-externa";
 import { motivoSemReacao, podeReagir, reacaoGravada, suportaReacao, validarReacao } from "@/lib/reacoes";
 
 export const dynamic = "force-dynamic";
@@ -65,12 +66,24 @@ export async function POST(req: NextRequest) {
   if (!def) return NextResponse.json({ error: "canal nao registrado" }, { status: 404 });
   const T = tabelas(canal);
 
+  // FONTE EXTERNA QUE REAGE (whatsapp-agent): a mensagem mora no banco do agente
+  // e a reacao sai pela tool `react` da mcp-api dele. Os gates abaixo sao os
+  // MESMOS; so a leitura e o motor trocam.
+  const ext = fonteExterna(def) ? await fonteLigada(def) : null;
+  if (fonteExterna(def) && ext && !ext.reagir) {
+    return NextResponse.json({ error: "envio pelo agente nao configurado (WA_MCP_URL/WA_MCP_KEY)" }, { status: 501 });
+  }
+
   const db = msgDb();
-  const { data: msg } = await db
-    .from(T.mensagens)
-    .select("id,chat_id,direcao,provider_msg_id,is_deleted")
-    .eq("id", id)
-    .maybeSingle();
+  const msg = ext
+    ? await ext.mensagemPorId(id)
+    : (
+        await db
+          .from(T.mensagens)
+          .select("id,chat_id,direcao,provider_msg_id,is_deleted")
+          .eq("id", id)
+          .maybeSingle()
+      ).data;
   if (!msg) return NextResponse.json({ error: "mensagem nao encontrada" }, { status: 404 });
   // mesmo gate de escopo das demais rotas: sem ver a conversa, nao mexe nela
   if (!(await podeVerConversa(msg.chat_id, user, perfil, canal))) {
@@ -101,6 +114,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "nao da pra reagir a esta mensagem" }, { status: 409 });
   }
 
+  const reacao = reacaoGravada(v.emoji);
+  if (ext?.reagir) {
+    const r = await ext.reagir(msg.id, v.emoji);
+    if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
+    // nada a gravar no painel: o eco do webhook grava em message_reactions do agente
+    return NextResponse.json({ ok: true, reacao });
+  }
+
   const motor = motorDeReacao(canal);
   if (!motor) {
     return NextResponse.json({ error: "credenciais do canal nao configuradas" }, { status: 501 });
@@ -113,7 +134,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "o WhatsApp recusou a reacao" }, { status: 502 });
   }
 
-  const reacao = reacaoGravada(v.emoji);
   await db.from(T.mensagens).update({ reacao }).eq("id", msg.id);
   return NextResponse.json({ ok: true, reacao });
 }

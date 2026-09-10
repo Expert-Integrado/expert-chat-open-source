@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { getUser } from "@/lib/auth-server";
 import { getPerfil, podeVerConversa, idsInativos } from "@/lib/perfil";
 import { canalDeBody, tabelas } from "@/lib/canal";
-import { somenteLeitura } from "@/lib/canais";
+import { prepararEstadoExterno } from "@/lib/estado-externo";
 import { msgDb } from "@/lib/mensageria";
 import { restricaoEfetiva } from "@/lib/embed";
 
@@ -38,14 +38,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "fora do contexto" }, { status: 403 });
   }
 
-  // fonte externa (instagram-agent): a nota mora na tabela de mensagens do painel,
-  // que este canal nao tem — 403 explicito em vez de 500
-  if (somenteLeitura(canal)) {
-    return NextResponse.json(
-      { error: "canal somente leitura: anotacao interna ainda nao disponivel pra este canal" },
-      { status: 403 }
-    );
-  }
+  // fonte externa: a nota mora na tabela de mensagens do painel — o canal do
+  // agente ganha a linha de conversa aqui; o instagram-agent (sem estado) segue 403
+  const bloqueio = await prepararEstadoExterno(canal, String(chat_id), "anotacao interna");
+  if (bloqueio) return bloqueio;
 
   const db = msgDb();
   const now = new Date().toISOString();

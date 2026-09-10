@@ -101,6 +101,7 @@ bloco("suportaReacao: Z-API e Evolution sim; Gupshup e externa nao, com motivo",
   assert.equal(suportaReacao("evolution"), true);
   assert.equal(suportaReacao("gupshup"), false);
   assert.equal(suportaReacao("instagram-agent"), false);
+  assert.equal(suportaReacao("whatsapp-agent"), true, "reage pela tool react da mcp-api do agente");
   assert.equal(suportaReacao(""), false);
   assert.equal(suportaReacao(undefined), false);
   assert.match(motivoSemReacao("gupshup"), /API oficial/);

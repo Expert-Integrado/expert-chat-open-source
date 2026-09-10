@@ -6,3 +6,4 @@ tsconfig.tsbuildinfo
 
 # bytecode do python dos scripts de homologacao
 __pycache__/
+.vercel

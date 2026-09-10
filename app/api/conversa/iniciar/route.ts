@@ -3,7 +3,8 @@ import { msgDb } from "@/lib/mensageria";
 import { getUser } from "@/lib/auth-server";
 import { getPerfil, permitido, contaDoUsuario } from "@/lib/perfil";
 import { canalDeBody, tabelas } from "@/lib/canal";
-import { canalPorId, envioDisponivel, somenteLeitura } from "@/lib/canais";
+import { canalPorId, envioDisponivel, fonteExterna, somenteLeitura } from "@/lib/canais";
+import { fonteLigada } from "@/lib/fonte-externa";
 import { contextoEmbed } from "@/lib/embed";
 import { textoComAssinatura } from "@/lib/conversa-automatica";
 import { normalizarTelefone } from "@/lib/disparo/telefone";
@@ -257,6 +258,14 @@ export async function POST(req: NextRequest) {
       if (!creds) throw new Error("credenciais Evolution do canal nao configuradas");
       const sent = await evoSendText(creds, v.chat_id, textoEnviar, null);
       providerMsgId = sent.messageId || null;
+    } else if (fonteExterna(def)) {
+      // canal do agente: a mcp-api cria o chat no banco do agente (allow_new) e
+      // a linha de estado no painel ja nasceu na reserva acima
+      const ext = await fonteLigada(def);
+      if (!ext?.enviar) throw new Error("envio pelo agente nao configurado (WA_MCP_URL/WA_MCP_KEY)");
+      const r = await ext.enviar(v.chat_id, { texto: textoEnviar, quoted: null, allowNew: true });
+      if (!r.ok) throw new Error(r.error);
+      providerMsgId = r.messageId;
     } else {
       throw new Error("canal sem envio de texto");
     }

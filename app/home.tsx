@@ -68,6 +68,7 @@ const mcpUrl = () =>
 const comandoMcp = (chave: string) =>
   `claude mcp add --transport http expert-chat ${mcpUrl()} --header "x-api-key: ${chave}"`;
 import { authClient } from "@/lib/auth-client";
+import { SENHA_MINIMA } from "@/lib/perfil-conta";
 import type { Session } from "@supabase/supabase-js";
 import type { CanalPublico } from "@/lib/canais";
 import {
@@ -561,6 +562,21 @@ function Login() {
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState("");
   const [carregando, setCarregando] = useState(false);
+  // ESQUECI MINHA SENHA (09/09/2026): o auth manda um link pro e-mail; ao voltar
+  // por ele, o onAuthStateChange recebe PASSWORD_RECOVERY e a tela NovaSenha
+  // aparece. Depende de SMTP no projeto de auth — sem ele, o caminho e o super
+  // admin gerar senha temporaria (Configuracoes → Acesso → Redefinir senha).
+  const [esqueci, setEsqueci] = useState<"nao" | "form" | "enviado">("nao");
+
+  async function pedirLink(e: React.FormEvent) {
+    e.preventDefault();
+    setCarregando(true);
+    setErro("");
+    // resposta igual exista ou nao o e-mail: nao confirma cadastro pra quem pergunta
+    await authClient.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin }).catch(() => null);
+    setEsqueci("enviado");
+    setCarregando(false);
+  }
 
   async function entrar(e: React.FormEvent) {
     e.preventDefault();
@@ -605,6 +621,35 @@ function Login() {
     setCarregando(false);
   }
 
+  if (esqueci !== "nao") {
+    return (
+      <div className="flex h-screen items-center justify-center bg-muted">
+        <form onSubmit={pedirLink} className="w-[340px] rounded-xl border bg-white p-6 shadow-sm">
+          <h1 className="mb-1 text-lg font-semibold">{NOME_PAINEL}</h1>
+          {esqueci === "enviado" ? (
+            <p className="mb-4 text-xs text-muted-foreground">
+              Se este e-mail tiver conta, o link pra criar uma senha nova chega em instantes. Nao chegou? Peca ao administrador do painel uma senha temporaria.
+            </p>
+          ) : (
+            <>
+              <p className="mb-4 text-xs text-muted-foreground">Informe o e-mail da sua conta. Voce recebe um link pra criar uma senha nova.</p>
+              <input type="email" required placeholder="E-mail" autoComplete="email"
+                className="mb-3 w-full rounded-lg border px-3 py-2 text-sm outline-none"
+                value={email} onChange={(e) => setEmail(e.target.value)} />
+              <button type="submit" disabled={carregando}
+                className="w-full rounded-lg bg-primary py-2 text-sm font-medium text-primary-foreground disabled:opacity-50">
+                {carregando ? "Enviando..." : "Enviar link"}
+              </button>
+            </>
+          )}
+          <button type="button" onClick={() => setEsqueci("nao")} className="mt-3 w-full text-xs text-muted-foreground hover:underline">
+            Voltar ao login
+          </button>
+        </form>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen items-center justify-center bg-muted">
       <form onSubmit={entrar} className="w-[340px] rounded-xl border bg-white p-6 shadow-sm">
@@ -620,6 +665,44 @@ function Login() {
         <button type="submit" disabled={carregando}
           className="w-full rounded-lg bg-primary py-2 text-sm font-medium text-primary-foreground disabled:opacity-50">
           {carregando ? "Entrando..." : "Entrar"}
+        </button>
+        <button type="button" onClick={() => { setEsqueci("form"); setErro(""); }} className="mt-3 w-full text-xs text-muted-foreground hover:underline">
+          Esqueci minha senha
+        </button>
+      </form>
+    </div>
+  );
+}
+
+// Senha nova depois do link de recuperacao (PASSWORD_RECOVERY). A sessao do
+// link ja esta aberta; so falta gravar a senha — a mesma regra de tamanho da
+// troca em Meu perfil (SENHA_MINIMA). Com 2FA cadastrado, o codigo e pedido
+// ANTES desta tela (ordem dos returns no componente principal).
+function NovaSenha({ aoConcluir }: { aoConcluir: () => void }) {
+  const [senha, setSenha] = useState("");
+  const [erro, setErro] = useState("");
+  const [carregando, setCarregando] = useState(false);
+  async function salvar(e: React.FormEvent) {
+    e.preventDefault();
+    if (senha.length < SENHA_MINIMA) { setErro(`A senha precisa de pelo menos ${SENHA_MINIMA} caracteres.`); return; }
+    setCarregando(true);
+    setErro("");
+    const { error } = await authClient.auth.updateUser({ password: senha });
+    if (error) { setErro("Nao deu pra gravar a senha. Peca um link novo."); setCarregando(false); return; }
+    aoConcluir();
+  }
+  return (
+    <div className="flex h-screen items-center justify-center bg-muted">
+      <form onSubmit={salvar} className="w-[340px] rounded-xl border bg-white p-6 shadow-sm">
+        <h1 className="mb-1 text-lg font-semibold">{NOME_PAINEL}</h1>
+        <p className="mb-4 text-xs text-muted-foreground">Crie a sua senha nova.</p>
+        <input type="password" required placeholder="Nova senha" autoComplete="new-password"
+          className="mb-3 w-full rounded-lg border px-3 py-2 text-sm outline-none"
+          value={senha} onChange={(e) => setSenha(e.target.value)} />
+        {erro && <p className="mb-2 text-xs text-red-600">{erro}</p>}
+        <button type="submit" disabled={carregando}
+          className="w-full rounded-lg bg-primary py-2 text-sm font-medium text-primary-foreground disabled:opacity-50">
+          {carregando ? "Salvando..." : "Salvar senha"}
         </button>
       </form>
     </div>
@@ -768,6 +851,7 @@ export default function Home({ embed = false, ctxToken = "" }: { embed?: boolean
   const [authReady, setAuthReady] = useState(false);
   const [mfaPendente, setMfaPendente] = useState(false);
   const [mfaCadastro, setMfaCadastro] = useState(false);
+  const [recuperandoSenha, setRecuperandoSenha] = useState(false);
   const sessionRef = useRef<Session | null>(null);
   if (session && !sessionRef.current) sessionRef.current = session;
   if (!session) sessionRef.current = null;
@@ -778,6 +862,8 @@ export default function Home({ embed = false, ctxToken = "" }: { embed?: boolean
       setAuthReady(true);
     });
     const { data: sub } = authClient.auth.onAuthStateChange((_e, s) => {
+      // chegou pelo link de "esqueci minha senha": a tela NovaSenha entra na frente
+      if (_e === "PASSWORD_RECOVERY") setRecuperandoSenha(true);
       // o token renovado vai pro ref (usado nos fetches) SEM trocar o estado:
       // trocar o objeto session a cada refresh reiniciava os efeitos e a tela
       // piscava/recarregava do nada a cada ~1h
@@ -3272,7 +3358,8 @@ export default function Home({ embed = false, ctxToken = "" }: { embed?: boolean
    */
   function canaisParaIniciar() {
     return canais.filter(
-      (c) => c.ativo && c.tipo === "whatsapp" && c.fonte !== "instagram-agent" && c.fonte !== "gupshup"
+      (c) =>
+        c.ativo && c.tipo === "whatsapp" && c.fonte !== "instagram-agent" && c.fonte !== "gupshup"
     );
   }
 
@@ -4257,6 +4344,7 @@ export default function Home({ embed = false, ctxToken = "" }: { embed?: boolean
   }
   if (mfaPendente) return <DesafioMfa aoEntrar={() => { void concluirMfa("desafio"); }} />;
   if (mfaCadastro) return <CadastroMfa aoConcluir={() => { void concluirMfa("cadastro"); }} />;
+  if (recuperandoSenha) return <NovaSenha aoConcluir={() => setRecuperandoSenha(false)} />;
 
   // ───── TRILHO ESQUERDO (tranche 2 da revisao de interface, 03/09/2026) ─────
   // Padrao de mercado (Intercom Inbox, Chatwoot, Front, Zendesk): coluna fina com ICONE +

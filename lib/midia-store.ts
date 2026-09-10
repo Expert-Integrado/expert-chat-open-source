@@ -11,6 +11,7 @@ import { msgDb } from "@/lib/mensageria";
 // O oid vem do messages2 do chat (casado por wa_message_id = provider_msg_id);
 // o id do chat no ChatGuru fica em conversas.chatguru_chat_id (o sync grava).
 const BUCKET = "midia-mensagens";
+export { BUCKET as BUCKET_MIDIA };
 const MAX_BYTES = 45 * 1024 * 1024; // bucket aceita 50MB; folga pra nao estourar
 const TIMEOUT_MS = 20_000;
 

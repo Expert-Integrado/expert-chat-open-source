@@ -83,6 +83,19 @@ export const SENHA_MINIMA = 8;
 
 // Mensagem de erro LEGIVEL, ou null quando esta tudo certo. Fail-closed: campo
 // faltando e erro, nao "deixa passar".
+// Senha TEMPORARIA gerada pelo super admin (rota /api/users/senha): 12 chars de
+// um alfabeto sem ambiguidade (sem 0/O, 1/l/I) — ela vai ser DITADA ou colada
+// por outro canal, e "O" contra "0" e o erro que faz a pessoa achar que a senha
+// esta errada. Puro: recebe os bytes aleatorios, quem sorteia e a rota.
+const ALFABETO_TEMPORARIA = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+export const SENHA_TEMPORARIA_TAMANHO = 12;
+
+export function gerarSenhaTemporaria(bytes: ArrayLike<number>): string {
+  let s = "";
+  for (let i = 0; i < SENHA_TEMPORARIA_TAMANHO; i++) s += ALFABETO_TEMPORARIA[(bytes[i % bytes.length] ?? 0) % ALFABETO_TEMPORARIA.length];
+  return s;
+}
+
 export function validarTrocaDeSenha(atual: unknown, nova: unknown): string | null {
   if (typeof atual !== "string" || !atual) return "Informe a senha atual.";
   if (typeof nova !== "string" || !nova) return "Informe a nova senha.";

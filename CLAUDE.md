@@ -1,7 +1,7 @@
 # Expert Chat — CLAUDE.md
 
 > Este repositório é a versão pública do painel de atendimento de WhatsApp da Expert Integrado
-> (versão 1.0.0). O histórico interno de decisões não veio junto: o que vale está no código,
+> (versão 1.1.0). O histórico interno de decisões não veio junto: o que vale está no código,
 > nas migrations e em `docs/`.
 
 ## O que é
@@ -54,4 +54,5 @@ node scripts/instalar/index.mjs      # conferidor da instalação (não altera n
 
 `README.md` (instalação passo a passo), `docs/instalacao.md`, `docs/variaveis.md`,
 `docs/permissoes.md`, `docs/disparo.md`, `docs/webhooks-saida.md`, `docs/exportacao.md`,
-`docs/embed-como-instalar.md`, `extensao-chrome/README.md`.
+`docs/embed-como-instalar.md`, `docs/canal-whatsapp-agent.md`, `docs/api.md`,
+`extensao-chrome/README.md`.

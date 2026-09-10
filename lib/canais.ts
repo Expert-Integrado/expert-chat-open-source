@@ -15,7 +15,10 @@ export type DonoCanal = "empresa" | "pessoal";
 // fonte = de onde entram/saem as mensagens do canal.
 // evolution = Evolution API (self-hosted, Baileys) — cada instalacao roda o
 // proprio servidor; base_url, instancia e apikey vem por env do canal.
-export type FonteCanal = "zapi" | "gupshup" | "evolution" | "instagram-agent";
+// whatsapp-agent = o banco do WhatsApp Agent (open source da Expert) — o painel
+// LE de la e ENVIA pela mcp-api do agente (lib/whatsapp-agent.ts). Nenhum webhook
+// novo: o agente segue sendo o unico que recebe.
+export type FonteCanal = "zapi" | "gupshup" | "evolution" | "instagram-agent" | "whatsapp-agent";
 
 export type CanalDef = {
   // slug estavel: e o valor de ?canal= nas rotas e da coluna `canal` nas
@@ -68,7 +71,7 @@ const CANAIS_BUILTIN: CanalDef[] = [
 
 const TIPOS: TipoCanal[] = ["whatsapp", "instagram"];
 const DONOS: DonoCanal[] = ["empresa", "pessoal"];
-const FONTES: FonteCanal[] = ["zapi", "gupshup", "evolution", "instagram-agent"];
+const FONTES: FonteCanal[] = ["zapi", "gupshup", "evolution", "instagram-agent", "whatsapp-agent"];
 const ID_RE = /^[a-z][a-z0-9_]{1,30}$/;
 
 // CANAIS_EXTRA = JSON de canais adicionais, ex:
@@ -78,6 +81,12 @@ const ID_RE = /^[a-z][a-z0-9_]{1,30}$/;
 // lib/instagram-agent.ts e as envs IG_SUPABASE_URL/IG_SUPABASE_SERVICE_KEY):
 //   {"id":"ig_pessoal","tipo":"instagram","dono":"pessoal","rotulo":"@meuperfil",
 //    "identidade":"@meuperfil","fonte":"instagram-agent","conta":"meuperfil","ativo":true}
+// Canal do WhatsApp Agent (fonte whatsapp-agent, le o banco do agente e envia pela
+// mcp-api dele — ver lib/whatsapp-agent.ts e docs/canal-whatsapp-agent.md):
+//   {"id":"agente","tipo":"whatsapp","dono":"pessoal","rotulo":"Meu WhatsApp",
+//    "fonte":"whatsapp-agent","conta":"profissional","ativo":true}
+//   `conta` = alias ou instance_id da instancia no agente; sem `conta` vale a
+//   instancia default do agente (a mesma que as tools dele usam sem `instance`).
 // Campos opcionais: subtitulo, conta, tabelas (default conversas_<id>/mensagens_<id>),
 // ativo (default false — canal declarado so entra no seletor quando a fonte
 // dele estiver plugada e alguem ligar explicitamente).
@@ -325,7 +334,12 @@ export function envioDisponivel(canal: string): boolean {
       process.env[p + "API_KEY"]
     );
   }
-  return false; // fonte externa (instagram-agent) e somente leitura
+  if (c.fonte === "whatsapp-agent") {
+    // envio pela mcp-api do agente (respeita voice gate e trava de instancia de
+    // la); a leitura pede WA_SUPABASE_*, o envio pede as duas abaixo
+    return !!(process.env.WA_MCP_URL && process.env.WA_MCP_KEY);
+  }
+  return false; // fonte externa instagram-agent e somente leitura
 }
 
 // Fonte EXTERNA = o painel so LE (as tabelas moram no banco de outro sistema).
@@ -335,10 +349,20 @@ export function envioDisponivel(canal: string): boolean {
 // respondem 403 "somente leitura" em vez de estourar 500 em tabela inexistente.
 // Responsaveis e visibilidade NAO entram aqui: vivem em tabelas do painel
 // chaveadas por (canal, chat_id) e funcionam pra qualquer canal.
+// ENVIAR e outra pergunta (`envioDisponivel`): o whatsapp-agent e fonte externa
+// E envia, pela mcp-api do agente.
 export function fonteExterna(canal: CanalDef): boolean {
+  return canal.fonte === "instagram-agent" || canal.fonte === "whatsapp-agent";
+}
+// SEM ESTADO NO PAINEL = fonte externa cujo canal nao tem o par de tabelas
+// conversas_<id>/mensagens_<id> aqui. O whatsapp-agent TEM (funcao
+// criar_canal_whatsapp da 0007, chamada pelo /setup): status, etiqueta, ficha,
+// arquivo e nota interna moram nessa linha, e so o conteudo vem do agente
+// (lib/estado-externo.ts). O instagram-agent segue somente leitura.
+export function semEstadoNoPainel(canal: CanalDef): boolean {
   return canal.fonte === "instagram-agent";
 }
 export function somenteLeitura(canal: string): boolean {
   const c = canalPorId(canal);
-  return !!c && fonteExterna(c);
+  return !!c && semEstadoNoPainel(c);
 }

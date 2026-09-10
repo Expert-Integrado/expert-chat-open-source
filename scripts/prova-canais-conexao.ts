@@ -404,6 +404,8 @@ const TELA = readFileSync("app/admin-canais.tsx", "utf8");
   eq(conexaoDaFonte("evolution").pode, false, "Evolution nao esta cabeado nesta frente");
   tem((conexaoDaFonte("evolution") as any).motivo, /ainda nao/, "e isso e DECLARADO, nao escondido");
   eq(conexaoDaFonte("instagram-agent").pode, false, "canal de fonte externa e somente leitura");
+  eq(conexaoDaFonte("whatsapp-agent").pode, false, "numero do WhatsApp Agent conecta LA, nao aqui");
+  tem((conexaoDaFonte("whatsapp-agent") as any).motivo, /WhatsApp Agent/, "e a frase diz onde a conexao mora");
   eq(conexaoDaFonte("fonte_que_nao_existe").pode, false, "fonte desconhecida: fail-closed");
 
   dep(

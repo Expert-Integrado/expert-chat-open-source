@@ -8,7 +8,7 @@ import {
 import { canaisAtivos, canalPorId, fonteExterna, somenteLeitura } from "@/lib/canais";
 import { tabelas } from "@/lib/canal";
 import { fotoPublica } from "@/lib/foto";
-import { conversasIgPorIds, igDisponivel, resolverContaIg } from "@/lib/instagram-agent";
+import { fonteLigada } from "@/lib/fonte-externa";
 import { restricaoEfetiva, vinculosBu } from "@/lib/embed";
 import {
   canalPermitido,
@@ -222,17 +222,17 @@ export async function GET(req: NextRequest) {
       // canal de fonte externa nao tem linha de conversa no banco do painel: o
       // nome vem da fonte, em lote de 200 (mesmo teto do helper). Sem env ou
       // conta desconectada, o cartao cai no chat_id — nunca 500.
-      const conta = igDisponivel() ? await resolverContaIg(def) : null;
-      if (!conta) continue;
+      const ext = await fonteLigada(def);
+      if (!ext) continue;
       for (let i = 0; i < ids.length; i += 200) {
-        const linhas = await conversasIgPorIds(conta, ids.slice(i, i + 200));
+        const linhas = await ext.conversasPorIds(ids.slice(i, i + 200));
         for (const c of linhas) {
           const k = chave(canal, c.chat_id);
           cards.push({
             canal,
             chat_id: c.chat_id,
             nome: c.nome,
-            foto: null,
+            foto: fotoPublica(c.foto_wa_url),
             preview: c.last_message_preview,
             last_message_at: c.last_message_at,
             status: status.get(k) ?? "aberto",

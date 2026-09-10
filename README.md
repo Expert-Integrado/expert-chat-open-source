@@ -10,6 +10,12 @@ Criado por **Eric Luciano** na **Mentoria Automações Inteligentes** (Expert In
 **Uma instalação por empresa.** Isto não é multi-tenant e não pretende ser: cada empresa tem
 o seu banco, o seu deploy e as suas variáveis. Ninguém hospeda o seu atendimento além de você.
 
+## Já tem o WhatsApp Agent?
+
+O painel roda em cima dele, no mesmo Supabase, sem reinstalar nada: abra a pasta no Claude
+Code e diga `/setup`, ou rode `node scripts/instalar/agente.mjs`. Detalhes em
+`docs/canal-whatsapp-agent.md`.
+
 ## Como obter
 
 ```bash
@@ -18,7 +24,7 @@ cd expert-chat-open-source
 npm install
 ```
 
-## Avisos desta versão (1.0.0, publicada em 09/09/2026)
+## Avisos desta versão (1.1.0, publicada em 10/09/2026)
 
 Esta é a **mesma versão que roda na Expert Integrado**, aberta às pressas para a sprint da
 mentoria. Leia antes de instalar:
@@ -108,7 +114,11 @@ Em supabase.com, crie um projeto novo. Depois, em **Settings → API**, guarde d
 seu gerenciador de senhas e não deixe ela chegar ao navegador, a um print, a um repositório ou
 a uma mensagem — nem pra você mesmo depois.
 
-Ainda no Supabase, vá em **Database → Extensions** e habilite **`pg_cron`** e **`pg_net`**.
+Ainda em **Settings → API**, no campo **Exposed schemas**, acrescente **`mensageria`** à lista
+(sem tirar `public`). O painel inteiro fala com o banco por esse schema; sem isso ele sobe e
+não lê nada. Isso não abre dado nenhum: em `mensageria` só a `service_role` tem permissão.
+
+Depois, vá em **Database → Extensions** e habilite **`pg_cron`** e **`pg_net`**.
 Sem elas as rotinas automáticas (agendamento, automação, alertas) não têm como rodar. As duas
 existem no plano gratuito.
 
@@ -198,6 +208,7 @@ produção: no painel da sua hospedagem.
 | `CANAL_CENTRAL_IDENTIDADE` | seu número, só pra exibição na tela | fica em branco |
 | `MSG_STORAGE_BUCKET` | bucket do Supabase Storage onde a mídia é guardada | `midia-mensagens` |
 | `CANAIS_EXTRA` | JSON com canais além do principal (segundo número etc.) | só o canal principal |
+| `WA_MCP_URL`, `WA_MCP_KEY` | o painel como tela do seu **WhatsApp Agent**: lê o banco dele e envia pela `mcp-api` (ver `docs/canal-whatsapp-agent.md`) | canal do agent só leitura |
 | `TELEGRAM_BOT_TOKEN` | manda os alertas de canal caído e de SLA pro seu Telegram | alerta desligado, com aviso na tela |
 | `VIGIA_ALERTAS` | destino dos alertas, se você não configurar pela tela | usa o que está na tela |
 | `PIPEDRIVE_API_TOKEN` | permite usar filtro do Pipedrive como público de disparo | a opção some da tela de disparo |
@@ -225,6 +236,20 @@ npx vercel deploy --prod
 **Variável nova não alcança um deploy que já está no ar.** A Vercel injeta as variáveis no
 momento do build — sempre que você criar ou mudar uma, faça um deploy novo. Isso responde a
 maioria dos "configurei e não mudou nada".
+
+**Na Vercel, desligue a proteção de acesso — senão nenhum atendente entra.** Projeto novo nasce
+com **Deployment Protection** ligada, e ela exige conta na Vercel para abrir qualquer endereço
+`*.vercel.app`. O painel sobe, responde normalmente para você, e todo mundo do time cai numa tela
+de login da Vercel. O sintoma engana: parece problema de autenticação do painel, mas é um
+redirect para `vercel.com/login` antes de a sua aplicação ser chamada.
+
+Em **Settings → Deployment Protection**, desligue **Require Log In** (as opções do menu —
+"Standard Protection" e "All Deployments" — não resolvem: a primeira só libera domínio
+personalizado de produção, e instalação nova não tem nenhum).
+
+A configuração melhor, se você já tem domínio: aponte um subdomínio seu para o projeto e
+mantenha a proteção ligada. Aí os previews continuam fechados e só a produção fica aberta —
+com o login do painel, que é quem deve barrar.
 
 Para rodar na sua máquina antes de publicar: `npm run dev`, e abra http://localhost:3000.
 
@@ -394,6 +419,60 @@ on conflict (chave) do update set valor = excluded.valor, updated_at = now();
 Se você ligou automação ou disparo, volte ao passo 6: cada um tem uma rotina própria, e sem ela
 o fluxo nunca executa e a campanha nunca sai da fila.
 
+## O catálogo de etiquetas nasce vazio
+
+Instalação nova não tem etiqueta nenhuma cadastrada, e a rota só aceita etiqueta do catálogo —
+então a primeira tentativa de etiquetar uma conversa responde **400 "etiqueta fora do catálogo"**
+sem que nada esteja quebrado. O super admin cria as etiquetas em **Configurações → Etiquetas
+(catálogo único)**, e a partir daí o atendente escolhe entre elas. Mesma ideia dos campos da
+ficha: o catálogo é do admin, o valor é do atendente.
+
+## Atualizar uma instalação que já existe
+
+**Não sabe onde a pasta ficou?** Abra o Claude Code em qualquer lugar e peça: *"acha a pasta do
+Expert Chat aqui no meu computador e atualiza ele pra última versão"*. Ele encontra, atualiza e
+roda o conferidor. Você não precisa saber o caminho nem digitar comando nenhum.
+
+Código novo não muda nada do que você já configurou: o `.env.local` é seu e fica fora do Git, e
+migration aplicada não roda de novo. Na pasta do painel:
+
+```bash
+git pull
+npm install                                   # só se o package.json mudou
+node scripts/instalar/agente.mjs --valendo    # completa o que faltar; nada é sobrescrito
+```
+
+O conferidor é idempotente: ele aplica só a migration que falta, cria o que ainda não existe
+(bucket, tabelas de um canal novo) e mantém toda chave que já está no `.env.local`. Rodar duas
+vezes não faz mal. Sem o WhatsApp Agent, o equivalente é
+`node scripts/instalar/index.mjs`, que **confere e diz** o que falta sem alterar nada.
+
+Depois:
+
+- **Local:** reinicie o `npm run dev`.
+- **Vercel pelo CLI:** `vercel --prod` de novo. Envs novas vão com
+  `node scripts/instalar/agente.mjs --valendo --vercel` antes do deploy — variável só entra em
+  build novo.
+- **Vercel ligada a um fork no GitHub:** `git push` para o seu fork e ela redeploya sozinha.
+
+Se a atualização trouxer migration nova, o conferidor avisa antes de aplicar e confere no fim;
+ele **para com erro** se sobrar alguma pela metade, em vez de dizer que terminou.
+
+## Esqueci a senha
+
+Dois caminhos, e o segundo existe porque o primeiro depende de e-mail:
+
+1. **Link por e-mail.** Na tela de login, "Esqueci minha senha" manda um link pelo Supabase Auth.
+   Precisa de **SMTP configurado** no projeto (Authentication → SMTP Settings); o remetente
+   padrão do Supabase é só para teste e limita a poucos e-mails por hora. O caminho mais curto
+   é o Resend: crie a API key lá, verifique o seu domínio, e no Supabase preencha host
+   `smtp.resend.com`, porta `465`, usuário `resend`, senha = a API key, remetente um e-mail do
+   domínio verificado. Em **Authentication → URL Configuration**, ponha a URL do painel em
+   Site URL e em Redirect URLs, senão o link volta para o endereço errado.
+2. **Senha temporária pelo super admin.** Em Configurações → Acesso → **Redefinir senha**, o
+   administrador escolhe a pessoa e o painel gera uma senha temporária, mostrada uma vez. A
+   pessoa entra com ela e troca em Meu perfil. Não depende de e-mail.
+
 ## Permissões que não se ganham sozinhas
 
 Um papel que você criou **antes** de uma permissão nova existir não a recebe automaticamente —
@@ -442,6 +521,8 @@ decisão do produto, e é o melhor lugar pra entender uma parte do código antes
 | `docs/disparo.md` | campanhas em massa |
 | `docs/webhooks-saida.md` | como avisar outro sistema quando algo acontece aqui |
 | `docs/exportacao.md` | tirar os dados de dentro |
+| `docs/canal-whatsapp-agent.md` | usar o painel em cima do WhatsApp Agent que você já tem, sem reinstalar |
+| `docs/api.md` | as rotas da API que um integrador ou agente usa, com os nomes certos dos parâmetros |
 
 ## Licença
 

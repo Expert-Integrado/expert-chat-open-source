@@ -4,7 +4,8 @@ import { getUser } from "@/lib/auth-server";
 import { getPerfil, podeVerConversa } from "@/lib/perfil";
 import { canalDe, canalDeBody, tabelas } from "@/lib/canal";
 import { canalPorId, fonteExterna, somenteLeitura } from "@/lib/canais";
-import { igDisponivel, resolverContaIg, conversasIgPorIds } from "@/lib/instagram-agent";
+import { prepararEstadoExterno, tabelaAusente } from "@/lib/estado-externo";
+import { fonteLigada } from "@/lib/fonte-externa";
 import { restricaoEfetiva } from "@/lib/embed";
 // FRENTE X (31/08/2026), toque 1 de 2 nesta rota — o catalogo TIPADO e a DECISAO
 // de escrita passaram a vir de um lugar so. Ver `app/api/campos/valores/route.ts`:
@@ -47,18 +48,19 @@ export async function GET(req: NextRequest) {
 
   const db = msgDb();
   const def = canalPorId(canal)!;
-  if (fonteExterna(def)) {
-    // fonte externa (instagram-agent): ficha minima (nome, status). Campos, etiquetas
-    // e notas moram na linha da conversa do painel, que este canal ainda nao tem.
-    const conta = igDisponivel() ? await resolverContaIg(def) : null;
-    const [c] = conta ? await conversasIgPorIds(conta, [chatId]) : [];
+  if (somenteLeitura(canal)) {
+    // fonte externa SEM estado no painel (instagram-agent): ficha minima (nome,
+    // status). O canal do agente segue pelo caminho normal: a linha dele mora no
+    // painel (lib/estado-externo.ts) e so o nome pode vir do agente.
+    const ext = await fonteLigada(def);
+    const [c] = ext ? await ext.conversasPorIds([chatId]) : [];
     const catExt = await lerCatalogo();
     const ativosExt = catExt.campos.filter((x) => x.ativo);
     return NextResponse.json(
       {
         chat_id: chatId,
         nome: c?.nome ?? null,
-        is_group: false,
+        is_group: c?.is_group ?? false,
         status: "aberto",
         responsavel_nome: null,
         etiquetas: [],
@@ -95,11 +97,14 @@ export async function GET(req: NextRequest) {
     lerCatalogo(),
   ]);
 
-  if (conv.error) {
+  if (conv.error && !(fonteExterna(def) && tabelaAusente(conv.error))) {
     console.error("ficha:", conv.error.message);
     return NextResponse.json({ error: "falha ao carregar ficha" }, { status: 500 });
   }
   const c: any = conv.data;
+  // canal do agente: a linha do painel nasce na primeira acao; ate la o nome
+  // vem do banco do agente (e a ficha aparece vazia, nao "nao encontrada")
+  const nomeExterno = fonteExterna(def) && !c?.nome ? ((await (await fonteLigada(def))?.conversasPorIds([chatId]))?.[0]?.nome ?? null) : null;
   const meta: any = c?.meta_chatguru || {};
   const ficha: Record<string, string> = {};
   for (const [k, v] of Object.entries((c?.ficha as Record<string, unknown>) || {})) {
@@ -110,7 +115,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json(
     {
       chat_id: c?.chat_id ?? chatId,
-      nome: c?.nome ?? null,
+      nome: c?.nome ?? nomeExterno,
       is_group: !!c?.is_group,
       status: c?.status ?? "aberto",
       responsavel_nome: c?.responsavel_nome ?? null,
@@ -172,12 +177,8 @@ export async function PATCH(req: NextRequest) {
   if (emb && !emb.permite(String(chat_id))) {
     return NextResponse.json({ error: "fora do contexto" }, { status: 403 });
   }
-  if (somenteLeitura(canal)) {
-    return NextResponse.json(
-      { error: "canal somente leitura: ficha ainda nao editavel pra este canal" },
-      { status: 403 }
-    );
-  }
+  const bloqueio = await prepararEstadoExterno(canal, String(chat_id), "a ficha");
+  if (bloqueio) return bloqueio;
   const db = msgDb();
   const [{ data: atual }, cat] = await Promise.all([
     db.from(T.conversas).select("ficha").eq("chat_id", String(chat_id)).maybeSingle(),

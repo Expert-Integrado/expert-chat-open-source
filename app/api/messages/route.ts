@@ -6,7 +6,9 @@ import { fotoPublica } from "@/lib/foto";
 import { getPerfil, podeVerConversa } from "@/lib/perfil";
 import { canalDe, tabelas } from "@/lib/canal";
 import { canalPorId, fonteExterna } from "@/lib/canais";
-import { igDisponivel, resolverContaIg, listarMensagensIg } from "@/lib/instagram-agent";
+import { fonteLigada } from "@/lib/fonte-externa";
+import { estadosDe, notasDe } from "@/lib/estado-externo";
+import { reconhecerNotaExterna } from "@/lib/csat-externo";
 import { sincronizarApioficial } from "@/lib/sync-apioficial";
 import { janela24h } from "@/lib/gupshup";
 import { restricaoEfetiva } from "@/lib/embed";
@@ -92,12 +94,22 @@ export async function GET(req: NextRequest) {
   let foto: string | null = null;
   let janela: Awaited<ReturnType<typeof janela24h>> | null = null;
   if (fonteExterna(def)) {
-    // fonte externa (instagram-agent): as mensagens vem do banco do agente, ja
-    // nas colunas do painel; sem foto (bucket privado) e sem janela de 24h
-    const conta = igDisponivel() ? await resolverContaIg(def) : null;
-    const ig = conta ? await listarMensagensIg(conta, chatId) : [];
-    if (ig === null) return NextResponse.json({ error: "falha ao carregar mensagens" }, { status: 500 });
-    linhas = ig;
+    // fonte externa (instagram-agent / whatsapp-agent): as mensagens vem do banco
+    // do agente, ja nas colunas do painel; sem foto de perfil e sem janela de 24h
+    const ext = await fonteLigada(def);
+    const externas = ext ? await ext.listarMensagens(chatId) : [];
+    if (externas === null) return NextResponse.json({ error: "falha ao carregar mensagens" }, { status: 500 });
+    // pesquisa de satisfacao: a nota do cliente e reconhecida na leitura (o agente
+    // nao manda webhook) — melhor-esforco, nunca derruba a conversa
+    try {
+      const estado = (await estadosDe(canal, [chatId])).get(chatId);
+      await reconhecerNotaExterna(canal, chatId, estado, externas, ext);
+    } catch (e: any) {
+      console.error("csat externo:", e?.message);
+    }
+    // anotacoes internas do painel (canal do agente) entram no fluxo, em ordem
+    const notas = await notasDe(canal, chatId);
+    linhas = [...externas, ...notas].sort((a, b) => String(b.criada_em || "").localeCompare(String(a.criada_em || "")));
   } else {
     if (canal === "apioficial") await sincronizarApioficial();
     const [msgRes, fotoDb, janelaDb] = await Promise.all([

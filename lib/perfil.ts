@@ -422,7 +422,7 @@ export async function podeVerConversa(
   // tabela de conversas PELO registro de canais (lib/canais.ts); fonte externa nao
   // tem linha no painel — status vale "aberto", como /api/chats ja devolve
   const { tabelas } = await import("@/lib/canal");
-  const { somenteLeitura } = await import("@/lib/canais");
+  const { somenteLeitura, canalPorId, fonteExterna } = await import("@/lib/canais");
   const { vinculosBu } = await import("@/lib/embed");
   const [{ data }, { data: conv }, { data: vis }, vinculos, ctx, restr] = await Promise.all([
     msgDb().from("conversa_responsaveis").select("tipo,ref_id").eq("chat_id", chatId).eq("canal", canal),
@@ -441,7 +441,9 @@ export async function podeVerConversa(
     user,
     perfil,
     ctx,
-    conv?.status ?? null,
+    // canal externo sem linha de estado ainda: e uma conversa ABERTA (a linha
+    // nasce na primeira acao), nunca "inexistente"
+    conv?.status ?? (canalPorId(canal) && fonteExterna(canalPorId(canal)!) ? "aberto" : null),
     (vis ?? []) as VisibilidadeEntry[],
     vinculos,
     restr

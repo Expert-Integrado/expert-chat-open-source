@@ -714,6 +714,8 @@ export function conexaoDaFonte(fonte: unknown): { pode: true } | MotivoSemConexa
       };
     case "instagram-agent":
       return { pode: false, motivo: "este canal e somente leitura: a conexao dele mora no Instagram Agent." };
+    case "whatsapp-agent":
+      return { pode: false, motivo: "a conexao deste numero mora no WhatsApp Agent: o QR e lido pelo agente, nao por aqui." };
     default:
       return { pode: false, motivo: "este canal nao tem conexao administravel pelo painel." };
   }

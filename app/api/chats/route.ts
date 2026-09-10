@@ -6,7 +6,8 @@ import { fotoPublica } from "@/lib/foto";
 import { getPerfil, contextoVisao, conversaVisivel, Responsavel, VisibilidadeEntry } from "@/lib/perfil";
 import { canalDe, tabelas } from "@/lib/canal";
 import { canalPorId, canaisAtivos, canalPublico, fonteExterna } from "@/lib/canais";
-import { igDisponivel, resolverContaIg, listarConversasIg, ultimasMensagensIg } from "@/lib/instagram-agent";
+import { externaDisponivel, fonteLigada } from "@/lib/fonte-externa";
+import { estadosDe } from "@/lib/estado-externo";
 import { sincronizarApioficial } from "@/lib/sync-apioficial";
 import { fusoDaConfig, getConfig } from "@/lib/config";
 import { restricaoEfetiva, vinculosBu } from "@/lib/embed";
@@ -52,8 +53,8 @@ export async function GET(req: NextRequest) {
   const ctx = await contextoVisao(user, perfil);
 
   // conversas + ultimas mensagens vem do banco do painel (WhatsApp) OU da fonte
-  // externa (instagram-agent, lib/instagram-agent.ts). Daqui pra baixo a rota e a
-  // MESMA pros dois: responsaveis, visibilidade, escopo e previa moram no painel.
+  // externa (instagram-agent / whatsapp-agent, via lib/fonte-externa.ts). Daqui pra
+  // baixo a rota e a MESMA: responsaveis, visibilidade, escopo e previa moram no painel.
   // ALEM DA JANELA (decisao do Eric, 03/09/2026 — lib/lista-conversas.ts): a
   // listagem cortava em 600 por canal, calada, e 95% do acervo ficava invisivel.
   //   ?q=      busca no ACERVO por nome (contem) ou digitos do numero (>= 3)
@@ -71,8 +72,14 @@ export async function GET(req: NextRequest) {
   if (fonteExterna(def)) {
     // sem env ou conta nao conectada no agente: o canal existe, lista vazia — nunca 500
     // (fonte externa nao pagina nem busca: a lista dela ja e o que o agente devolve)
-    const conta = igDisponivel() ? await resolverContaIg(def) : null;
-    if (conta) [conversas, ultimas] = await Promise.all([listarConversasIg(conta), ultimasMensagensIg(conta)]);
+    const ext = await fonteLigada(def);
+    if (ext) [conversas, ultimas] = await Promise.all([ext.listarConversas(), ext.ultimasMensagens()]);
+    // o ESTADO (status, arquivo, responsavel legado) e do painel; o conteudo e do agente
+    const estados = await estadosDe(canal, conversas.map((c) => c.chat_id));
+    conversas = conversas.map((c) => {
+      const e = estados.get(c.chat_id);
+      return e ? { ...c, status: e.status, arquivada: e.arquivada, auto_arquivar: e.auto_arquivar, responsavel_id: e.responsavel_id, responsavel_nome: e.responsavel_nome, responsavel_tipo: e.responsavel_tipo } : c;
+    });
   } else {
     // canal oficial: materializa a entrada nova (Gupshup -> webhook_events) antes de listar
     if (canal === "apioficial") await sincronizarApioficial();
@@ -282,7 +289,7 @@ export async function GET(req: NextRequest) {
   const restricaoCanais = await restricaoDeConversas(user.id, perfil.papel === "super_admin");
   const canais = canaisAtivos()
     .filter((c) => c.id !== "apioficial" || canal_oficial)
-    .filter((c) => !fonteExterna(c) || igDisponivel())
+    .filter((c) => !fonteExterna(c) || externaDisponivel(c))
     .filter((c) => canalPermitido(restricaoCanais, c.id))
     .map(canalPublico);
   return NextResponse.json(

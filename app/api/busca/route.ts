@@ -3,7 +3,7 @@ import { getUser } from "@/lib/auth-server";
 import { getPerfil, contextoVisao, conversaVisivel, Responsavel, VisibilidadeEntry } from "@/lib/perfil";
 import { canalDe, tabelas } from "@/lib/canal";
 import { canalPorId, fonteExterna } from "@/lib/canais";
-import { igDisponivel, resolverContaIg, buscarMensagensIg, conversasIgPorIds } from "@/lib/instagram-agent";
+import { fonteLigada } from "@/lib/fonte-externa";
 import { msgDb } from "@/lib/mensageria";
 import { restricaoEfetiva, vinculosBu } from "@/lib/embed";
 import { padraoParaIlike, casaTermo } from "@/lib/tela-conversa";
@@ -26,13 +26,13 @@ export async function GET(req: NextRequest) {
   const T = tabelas(canal);
   const db = msgDb();
   const def = canalPorId(canal)!;
-  // fonte externa (instagram-agent): hits e nomes vem do banco do agente; o escopo
-  // de visao (responsaveis/visibilidade) segue no banco do painel, por canal
-  const contaIg = fonteExterna(def) && igDisponivel() ? await resolverContaIg(def) : null;
+  // fonte externa (instagram-agent / whatsapp-agent): hits e nomes vem do banco do
+  // agente; o escopo de visao (responsaveis/visibilidade) segue no painel, por canal
+  const ext = fonteExterna(def) ? await fonteLigada(def) : null;
 
   let hits: any[] = [];
   if (fonteExterna(def)) {
-    hits = contaIg ? await buscarMensagensIg(contaIg, q) : [];
+    hits = ext ? await ext.buscarMensagens(q) : [];
   } else {
   // `*` NAO DA PRA ESCAPAR no filtro ilike do PostgREST: ele troca `*` por `%`
   // antes do banco, e troca cegamente (inclusive depois de `\`), entao `\*`
@@ -79,8 +79,8 @@ export async function GET(req: NextRequest) {
       chatIds.map((chatId) => ({ canal, chatId }))
     ),
     fonteExterna(def)
-      ? contaIg
-        ? conversasIgPorIds(contaIg, chatIds)
+      ? ext
+        ? ext.conversasPorIds(chatIds)
         : Promise.resolve([] as any[])
       : db
           .from(T.conversas)

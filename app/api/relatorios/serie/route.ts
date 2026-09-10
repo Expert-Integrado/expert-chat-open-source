@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { sobreporSerie } from "@/lib/relatorios-agente";
 import { msgDb } from "@/lib/mensageria";
 import { canalPorId, somenteLeitura } from "@/lib/canais";
 import { canalDe } from "@/lib/canal";
@@ -114,21 +115,23 @@ export async function GET(req: NextRequest) {
 
   // O banco devolve a serie INTEIRA com o `dow` de cada dia; o corte dos
   // baldes de fim de semana acontece aqui (regra de exibicao num lugar so).
+  // canal do agente: mensagens e novos chats vem do banco do agente
+  const dados = def.fonte === "whatsapp-agent" ? await sobreporSerie(def, data, desde.toISOString(), ate.toISOString(), fuso) : data;
   type PontoNovos = { dia: string; dow: number; n: number };
-  const novosBruto = (data?.novos_chats ?? []) as PontoNovos[];
+  const novosBruto = (dados?.novos_chats ?? []) as PontoNovos[];
   const series = {
     novos_chats: filtrarDias(novosBruto, pular),
-    novos_atendimentos: filtrarDias(data?.novos_atendimentos ?? [], pular),
-    mensagens: filtrarDias(data?.mensagens ?? [], pular),
-    por_usuario: data?.por_usuario ?? [],
+    novos_atendimentos: filtrarDias(dados?.novos_atendimentos ?? [], pular),
+    mensagens: filtrarDias(dados?.mensagens ?? [], pular),
+    por_usuario: dados?.por_usuario ?? [],
     // ACUMULA PRIMEIRO, filtra depois: o total acumulado tem que contar os
     // chats que entraram no fim de semana (eles existem), so nao mostra os
     // baldes de sabado/domingo. Acumular sobre a serie ja filtrada daria uma
     // curva que contradiz o contador de chats do painel.
-    acumulado: filtrarDias(acumular(novosBruto, Number(data?.acumulado_base ?? 0)), pular),
+    acumulado: filtrarDias(acumular(novosBruto, Number(dados?.acumulado_base ?? 0)), pular),
     // media_s = com o fim de semana JA descontado; media_bruta_s = o cru, pra
     // dar pra ver o tamanho da mentira que o fim de semana produzia
-    tempo_atendimento: filtrarDias(data?.tempo_atendimento ?? [], pular),
+    tempo_atendimento: filtrarDias(dados?.tempo_atendimento ?? [], pular),
   };
 
   const vazio = !series.novos_chats.length && !series.mensagens.length && !series.tempo_atendimento.length;

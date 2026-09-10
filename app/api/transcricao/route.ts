@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getUser } from "@/lib/auth-server";
 import { getPerfil, podeVerConversa } from "@/lib/perfil";
 import { canalDeBody, tabelas } from "@/lib/canal";
-import { somenteLeitura } from "@/lib/canais";
+import { prepararEstadoExterno } from "@/lib/estado-externo";
 import { msgDb } from "@/lib/mensageria";
 import { restricaoEfetiva } from "@/lib/embed";
 import { getConfig, fusoDaConfig } from "@/lib/config";
@@ -125,12 +125,8 @@ export async function POST(req: NextRequest) {
   // mesma tabela. Sem ele o insert morria em 42P01 e a rota devolvia 500 com a
   // mensagem crua do Postgres (nome de tabela e schema pra quem pediu), em vez de
   // um 403 que explica.
-  if (somenteLeitura(canal)) {
-    return NextResponse.json(
-      { error: "canal somente leitura: transcricao ainda nao disponivel pra este canal" },
-      { status: 403 }
-    );
-  }
+  const bloqueio = await prepararEstadoExterno(canal, chat_id, "transcricao");
+  if (bloqueio) return bloqueio;
 
   const cfg = await configDaInstalacao();
   if (!disponivel(cfg)) {

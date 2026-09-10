@@ -52,7 +52,9 @@ export const ENVS = [
   { nome: "CENTRAL_ZAPI_INSTANCE_ID", obrigatoria: false, oQueE: "instancia do provedor do canal central. Sem ela o canal nao ENVIA.", segredo: false },
   { nome: "CENTRAL_ZAPI_TOKEN", obrigatoria: false, oQueE: "token da instancia do canal central.", segredo: true },
   { nome: "CENTRAL_ZAPI_CLIENT_TOKEN", obrigatoria: false, oQueE: "client-token da conta do provedor.", segredo: true },
-  { nome: "CANAIS_EXTRA", obrigatoria: false, oQueE: "JSON de canais adicionais (API oficial, 2o numero).", segredo: false },
+  { nome: "CANAIS_EXTRA", obrigatoria: false, oQueE: "JSON de canais adicionais (API oficial, 2o numero, canal do WhatsApp Agent).", segredo: false },
+  { nome: "WA_MCP_URL", obrigatoria: false, oQueE: "mcp-api do WhatsApp Agent (canal fonte whatsapp-agent). Sem ela o canal do agente e so leitura.", segredo: false },
+  { nome: "WA_MCP_KEY", obrigatoria: false, oQueE: "MCP_API_KEY do agente. Sem ela o canal do agente e so leitura.", segredo: true },
   { nome: "MSG_STORAGE_BUCKET", obrigatoria: false, oQueE: "bucket de midia. Sem ele a midia nao e re-hospedada.", segredo: false },
   { nome: "EMBED_JWT_SECRET", obrigatoria: false, oQueE: "segredo do widget embutido. So se a instalacao usa embed.", segredo: true },
   { nome: "EMBED_MINT_SECRET", obrigatoria: false, oQueE: "segredo pra emitir contexto do embed.", segredo: true },
@@ -160,11 +162,19 @@ export function envsDosCanais(env) {
       problemas.push("canal em CANAIS_EXTRA sem `id` ou sem `fonte` — o painel descarta esse canal");
       continue;
     }
-    // fonte externa (ex: instagram-agent) e SOMENTE LEITURA: nao envia, entao nao
+    const ativo = c?.ativo === true;
+    // canal do WhatsApp Agent envia pela mcp-api: as duas envs sao GLOBAIS (nao
+    // tem prefixo por canal) e ficam obrigatorias quando o canal esta ativo
+    if (fonte === "whatsapp-agent") {
+      for (const nome of ["WA_MCP_URL", "WA_MCP_KEY"]) {
+        defs.push({ nome, obrigatoria: ativo, oQueE: ativo ? `envio do canal "${id}" pela mcp-api do agente. Sem ela o canal APARECE e NAO ENVIA.` : `envio do canal "${id}", que esta ativo:false — nao cobrada.`, segredo: nome === "WA_MCP_KEY", canal: id });
+      }
+      continue;
+    }
+    // fonte externa instagram-agent e SOMENTE LEITURA: nao envia, entao nao
     // tem credencial de envio pra cobrar
     if (!(fonte in CREDENCIAL_POR_FONTE)) continue;
     const p = prefixoDoCanal(id, fonte);
-    const ativo = c?.ativo === true;
     for (const sufixo of CREDENCIAL_POR_FONTE[fonte]) {
       defs.push({
         nome: p + sufixo,
