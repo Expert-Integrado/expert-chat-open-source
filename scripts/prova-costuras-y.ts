@@ -24,7 +24,7 @@
 // outras frentes (W e X mexem em `lib/anexos*` e `lib/campos*` nesta mesma onda):
 // o merge tem que ser uniao mecanica.
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import {
   avisoDeVariaveis,
   camposDoTemplate,
@@ -968,7 +968,13 @@ function template(corpo: string, p: Partial<TemplateCanal> = {}): TemplateCanal 
 // que tirava a acao do doc sobrevivia a bateria inteira: o doc nao tinha guarda
 // nenhuma. Agora tem, e ela vale pra TODA acao, nao so pra esta frente.
 {
-  const doc = readFileSync(new URL("../docs/fluxo-canonico.md", import.meta.url), "utf8");
+  // O doc e o CONTRATO do modulo de automacao e mora no repo interno: a versao
+  // publica nao o carrega (ele cita medicao de uma conta real de cliente no
+  // benchmark). Sem o arquivo a guarda nao TEM o que ler; ela avisa alto e nao
+  // roda, em vez de derrubar a bateria inteira com ENOENT (era o que acontecia
+  // no repo publico desde a v1.0.0: esta prova morria antes das secoes seguintes).
+  const caminhoDoc = new URL("../docs/fluxo-canonico.md", import.meta.url);
+  const doc = existsSync(caminhoDoc) ? readFileSync(caminhoDoc, "utf8") : null;
   // ANCORA ESTRUTURAL, NAO SUBSTRING (correcao da revisao 2). `doc.includes(a)`
   // media "a string existe no arquivo" e nada mais, e duas mutacoes sobreviviam
   // inteiras: (1) APAGAR A LINHA DA TABELA que documenta `espera` — a palavra
@@ -991,7 +997,7 @@ function template(corpo: string, p: Partial<TemplateCanal> = {}): TemplateCanal 
   // linha explica a acao em algum lugar", nao "a tabela tem exatamente N colunas".
   const linhaDaAcao = (a: string) =>
     doc
-      .split("\n")
+      ?.split("\n")
       .find((l) => new RegExp("^\\|\\s*`" + a + "`\\s*\\|").test(l)) ?? null;
   const semLinha: string[] = [];
   const linhaVazia: string[] = [];
@@ -1005,12 +1011,16 @@ function template(corpo: string, p: Partial<TemplateCanal> = {}): TemplateCanal 
     // celulas[0] e o proprio nome da acao; a explicacao mora em qualquer uma das outras
     if (celulas.length < 2 || !celulas.slice(1).some((c) => c.length >= 10)) linhaVazia.push(a);
   }
+  if (doc === null) {
+    console.warn("prova-costuras-y: AVISO - docs/fluxo-canonico.md ausente (repo publico); a guarda de documentacao das acoes da v1 NAO rodou.");
+  } else {
   ok(
     semLinha.length === 0 && linhaVazia.length === 0,
     `toda acao da v1 tem LINHA PROPRIA e EXPLICADA na tabela de docs/fluxo-canonico.md` +
       ` (sem linha: ${semLinha.join(", ") || "nenhuma"}; linha sem explicacao: ${linhaVazia.join(", ") || "nenhuma"})`
   );
   ok(ACOES_V1.length > 5, `e a lista de acoes foi de fato lida (${ACOES_V1.length} acoes)`);
+  }
 }
 // ═══════ AS DUAS SAIDAS DO PAINEL DE MEMORIA (BAIXAS 6 e 7 da revisao 1)
 //
